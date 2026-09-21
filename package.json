@@ -1,70 +1,59 @@
 {
-    "name": "llm-viz",
-    "private": true,
-    "scripts": {
-        "dev": "next dev -p 3002",
-        "build": "next build",
-        "export": "next export",
-        "lint": "next lint",
-        "start": "next start",
-        "typecheck": "tsc --noEmit"
-    },
-    "dependencies": {
-        "@fortawesome/fontawesome-svg-core": "6.4.0",
-        "@fortawesome/free-brands-svg-icons": "6.4.0",
-        "@fortawesome/free-regular-svg-icons": "6.4.0",
-        "@fortawesome/free-solid-svg-icons": "6.4.0",
-        "@fortawesome/react-fontawesome": "0.2.0",
-        "@vercel/analytics": "1.0.2",
-        "clsx": "2.0.0",
-        "d3-color": "3.1.0",
-        "next": "13.4.19",
-        "npm": "10.2.5",
-        "react": "18.2.0",
-        "react-dom": "18.2.0",
-        "react-syntax-highlighter": "15.5.0"
-    },
-    "devDependencies": {
-        "@next/bundle-analyzer": "14.0.2",
-        "@types/d3-color": "3.1.0",
-        "@types/node": "20.1.0",
-        "@types/react": "18.2.22",
-        "@types/react-dom": "18.2.7",
-        "@webgpu/types": "0.1.32",
-        "add": "2.0.6",
-        "autoprefixer": "10.4.15",
-        "eslint": "8.49.0",
-        "eslint-config-next": "13.4.19",
-        "eslint-plugin-react": "7.33.1",
-        "eslint-plugin-react-hooks": "4.6.0",
-        "msdf-bmfont-xml": "2.7.0",
-        "postcss": "8.4.29",
-        "postcss-import": "15.1.0",
-        "postcss-nesting": "12.0.1",
-        "postcss-scss": "4.0.8",
-        "sass": "1.66.1",
-        "svg2ttf": "6.0.3",
-        "svgicons2svgfont": "12.0.0",
-        "tailwindcss": "3.3.3",
-        "typescript": "5.2.2",
-        "yarn": "1.22.21"
-    },
-    "resolutions": {
-        "jimp": "0.22.10",
-        "update-notifier": "6.0.2",
-        "xml2js": "0.5.0"
-    },
-    "eslintConfig": {
-        "extends": [
-            "next",
-            "plugin:react/recommended"
-        ],
-        "rules": {
-            "react/prop-types": "off",
-            "react-hooks/exhaustive-deps": "error",
-            "react/no-unescaped-entities": "off",
-            "@next/next/no-img-element": "off",
-            "@next/next/no-page-custom-font": "off"
-        }
-    }
+  "name": "einsum3d",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@4.18.0",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "audit": "yarn npm audit -A -R --severity low",
+    "verify": "yarn dedupe --check && yarn lint && yarn typecheck && yarn test && yarn build && yarn audit"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "7.3.1",
+    "@fortawesome/free-brands-svg-icons": "7.3.1",
+    "@fortawesome/free-solid-svg-icons": "7.3.1",
+    "@fortawesome/react-fontawesome": "3.5.0",
+    "@vercel/analytics": "2.0.1",
+    "clsx": "2.1.1",
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.3.5",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.11.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "jsdom": "30.1.0",
+    "postcss": "8.5.28",
+    "sass": "1.104.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.0",
+    "vite": "8.3.0",
+    "vitest": "5.0.1"
+  },
+  "resolutions": {
+    "brace-expansion@npm:^1.1.7": "npm:1.1.21",
+    "micromatch@npm:^4.0.4": "npm:4.0.8",
+    "picomatch@npm:^2.3.1": "npm:2.3.2"
+  }
 }

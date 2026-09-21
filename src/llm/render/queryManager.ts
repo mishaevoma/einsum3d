@@ -17,7 +17,7 @@ export function createQueryManager(ctx: IGLContext): IQueryManager {
     return {
         ctx,
         queries: new Map(),
-        TIME_ELAPSED_EXT: ctx.ext.disjointTimerQuery?.TIME_ELAPSED_EXT!,
+        TIME_ELAPSED_EXT: ctx.ext.disjointTimerQuery?.TIME_ELAPSED_EXT ?? 0,
     };
 }
 
@@ -28,7 +28,7 @@ export function beginQueryAndGetPrevMs(manager: IQueryManager, name: string): nu
 
     let existing = manager.queries.get(name);
     if (!existing) {
-        let query = manager.ctx.gl.createQuery()!;
+        const query = manager.ctx.gl.createQuery()!;
         manager.queries.set(name, existing = { query, hasRun: false, hasStarted: false });
     }
 
@@ -40,7 +40,7 @@ export function beginQueryAndGetPrevMs(manager: IQueryManager, name: string): nu
     let resultMs: number | null = null;
 
     if (resultAvailable) {
-        let timeElapsed = manager.ctx.gl.getQueryParameter(existing.query, manager.ctx.gl.QUERY_RESULT);
+        const timeElapsed = manager.ctx.gl.getQueryParameter(existing.query, manager.ctx.gl.QUERY_RESULT);
         resultMs = timeElapsed / 1000000;
     }
 
@@ -57,7 +57,7 @@ export function endQuery(manager: IQueryManager, name: string) {
     if (!manager.ctx.ext.disjointTimerQuery) {
         return;
     }
-    let existing = manager.queries.get(name);
+    const existing = manager.queries.get(name);
     if (existing && existing.hasRun && existing.hasStarted) {
         manager.ctx.gl.endQuery(manager.TIME_ELAPSED_EXT);
         existing.hasStarted = false;

@@ -46,9 +46,9 @@ export class Vec3 {
     mulAdd(a: Vec3, b: number): Vec3 { return new Vec3(this.x + a.x * b, this.y + a.y * b, this.z + a.z * b); }
     lenSq(): number { return this.x * this.x + this.y * this.y + this.z * this.z; }
     distSq(a: Vec3): number {
-        let dx = this.x - a.x;
-        let dy = this.y - a.y;
-        let dz = this.z - a.z;
+        const dx = this.x - a.x;
+        const dy = this.y - a.y;
+        const dz = this.z - a.z;
         return dx * dx + dy * dy + dz * dz;
     }
     len(): number { return Math.sqrt(this.lenSq()); }
@@ -105,10 +105,10 @@ export class Vec3 {
     rotateAbout(k: Vec3, thetaRad: number) {
         // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
         // k must have unit length
-        let c = Math.cos(thetaRad);
-        let s = Math.sin(thetaRad);
-        let kCrossV = Vec3.cross(k, this);
-        let kDotV = k.dot(this);
+        const c = Math.cos(thetaRad);
+        const s = Math.sin(thetaRad);
+        const kCrossV = Vec3.cross(k, this);
+        const kDotV = k.dot(this);
         return this.mul(c).add(kCrossV.mul(s)).add(k.mul(kDotV * (1 - c)));
     }
     lerp(a: Vec3, t: number): Vec3 {
@@ -150,10 +150,10 @@ export class Vec4 {
     mul(a: number): Vec4 { return new Vec4(this.x * a, this.y * a, this.z * a, this.w * a); }
     lenSq(): number { return this.x*this.x + this.y*this.y + this.z*this.z + this.w*this.w; }
     distSq(a: Vec4): number {
-        let dx = this.x - a.x;
-        let dy = this.y - a.y;
-        let dz = this.z - a.z;
-        let dw = this.w - a.w;
+        const dx = this.x - a.x;
+        const dy = this.y - a.y;
+        const dz = this.z - a.z;
+        const dw = this.w - a.w;
         return dx * dx + dy * dy + dz * dz + dw * dw;
     }
     len(): number { return Math.sqrt(this.lenSq()); }
@@ -180,14 +180,14 @@ export class Vec4 {
     }
     static fromHexColor(s: string, alpha: number = 1.0): Vec4 {
         if (s.startsWith('#')) s = s.slice(1);
-        let hexVal = parseInt(s, 16);
-        let x = (hexVal >> 16) & 0xFF;
-        let y = (hexVal >> 8) & 0xFF;
-        let z = hexVal & 0xFF;
+        const hexVal = parseInt(s, 16);
+        const x = (hexVal >> 16) & 0xFF;
+        const y = (hexVal >> 8) & 0xFF;
+        const z = hexVal & 0xFF;
         return new Vec4(x / 255.0 * alpha, y / 255.0 * alpha, z / 255.0 * alpha, alpha);
     }
     toHexColor(): string {
-        let toPair = (v: number) => Math.floor(v * 255).toString(16).padStart(2, '0');
+        const toPair = (v: number) => Math.floor(v * 255).toString(16).padStart(2, '0');
         return `#${toPair(this.x)}${toPair(this.y)}${toPair(this.z)}${toPair(this.w)}`;
     }
     toString(): string {
@@ -205,7 +205,7 @@ export class BoundingBox3d {
     public empty: boolean = true;
 
     constructor(...args: Array<Vec3>) {
-        for (let v of args)
+        for (const v of args)
             this.addInPlace(v);
     }
 
@@ -234,8 +234,8 @@ export class BoundingBox3d {
     }
 
     center(): Vec3 {
-        let a = this.max;
-        let b = this.min;
+        const a = this.max;
+        const b = this.min;
         return new Vec3(
             a.x + 0.5 * (b.x - a.x),
             a.y + 0.5 * (b.y - a.y),
@@ -288,7 +288,7 @@ export class BoundingBox3d {
     }
 
     clone(): BoundingBox3d {
-        let b = new BoundingBox3d();
+        const b = new BoundingBox3d();
         b.min = this.min.clone();
         b.max = this.max.clone();
         b.empty = this.empty;
@@ -327,19 +327,19 @@ export class Vec3Buf {
     }
 
     static normalize_(a: IArr, aOff: number, out: IArr, outOff: number) {
-        let x = a[aOff + 0];
-        let y = a[aOff + 1];
-        let z = a[aOff + 2];
-        let lenInv = 1.0 / Math.sqrt(x * x + y * y + z * z);
+        const x = a[aOff + 0];
+        const y = a[aOff + 1];
+        const z = a[aOff + 2];
+        const lenInv = 1.0 / Math.sqrt(x * x + y * y + z * z);
         out[outOff + 0] = x * lenInv;
         out[outOff + 1] = y * lenInv;
         out[outOff + 2] = z * lenInv;
     }
 
     static len_(a: Float32Array, aOff: number): number {
-        let x = a[aOff + 0];
-        let y = a[aOff + 1];
-        let z = a[aOff + 2];
+        const x = a[aOff + 0];
+        const y = a[aOff + 1];
+        const z = a[aOff + 2];
         return Math.sqrt(x * x + y * y + z * z);
     }
 }
@@ -354,15 +354,15 @@ export class Vec4Buf {
 }
 
 export function segmentNearestPoint(p0: Vec3, p1: Vec3, x: Vec3) {
-    let v = p1.sub(p0);
-    let w = x.sub(p0);
-    let t = clamp(w.dot(v) / v.dot(v), 0, 1);
+    const v = p1.sub(p0);
+    const w = x.sub(p0);
+    const t = clamp(w.dot(v) / v.dot(v), 0, 1);
     return p0.mulAdd(v, t);
 }
 
 export function segmentNearestT(p0: Vec3, p1: Vec3, x: Vec3) {
-    let v = p1.sub(p0);
-    let w = x.sub(p0);
+    const v = p1.sub(p0);
+    const w = x.sub(p0);
     return clamp(w.dot(v) / v.dot(v), 0, 1);
 }
 

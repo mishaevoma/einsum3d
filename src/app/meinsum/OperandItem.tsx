@@ -1,100 +1,72 @@
-import React, { useState } from 'react';
-import clsx from 'clsx';
+'use client';
 
-export interface IOperand {
-    name: string,
-    shapeString: string
-    isShapeStringValid: boolean
-    shape: number[]
-}
-
-export function createOperand(name: string, shape:number[] ) : IOperand{
-    return {name, shape, shapeString: JSON.stringify(shape), isShapeStringValid: true}
-}
-
-function tryParseShape(shapeStr: string): number[] | null {
-    // Remove spaces and parentheses
-    shapeStr = shapeStr.replace(/\s|\(|\)|\[|\]/g, "");
-
-    // Return null if the string is empty
-    if (!shapeStr) return null;
-
-    // Split the string by commas
-    const parts = shapeStr.split(',');
-
-    // Validate each part and convert to an integer
-    const numbers: number[] = [];
-    for (const part of parts) {
-        if (/^-?\d+$/.test(part)) {
-            numbers.push(parseInt(part, 10));
-        } else {
-            // If any part is not a valid integer, return null
-            return null;
-        }
-    }
-
-    return numbers;
-}
-
+import { useId } from 'react';
+import type { EinsumOperand } from '@/src/einsum';
+import { parseShape } from '@/src/einsum';
 
 interface OperandItemProps {
-    operand: IOperand;
-    onUpdate: (operand: IOperand) => void;
-    onRemove: () => void;
+  operand: EinsumOperand;
+  onUpdate: (operand: EinsumOperand) => void;
+  onRemove: () => void;
 }
 
-const OperandItem: React.FC<OperandItemProps> = ({ operand, onUpdate, onRemove }) => {
-    const [ text, setText ] = useState(operand.shapeString);
+const inputClassName =
+  'mx-1 w-28 rounded-sm border border-blue-600 px-1 py-1 text-sm outline-none focus:ring-2 focus:ring-blue-300';
 
-    const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({ ...operand, name: event.target.value });
-    };
+export default function OperandItem({
+  operand,
+  onUpdate,
+  onRemove,
+}: OperandItemProps) {
+  const fieldId = useId();
+  const parsedShape = parseShape(operand.shapeText);
 
-    const handleShapeStringChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const shapeString = event.target.value;
-        setText(shapeString);
-
-        const parsedShape = tryParseShape(shapeString);
-        const isShapeStringValid = Boolean(parsedShape);
-        const newShape = isShapeStringValid ? parsedShape : operand.shape;
-        onUpdate({...operand, shape: newShape, shapeString, isShapeStringValid});
-    };
-
-    const shapeInputStyle = operand.isShapeStringValid
-        ? {}
-        : { color: 'red', borderWidth: '2px' };
-        const inputStyle = {
-            border: '1px solid #007bff', // A blue border
-            borderRadius: '2px',         // Rounded corners
-            padding: '4px 4px',         // Padding inside the input
-            margin: '1px 4px',             // Margin around the input
-            outline: 'none',             // Remove the default focus outline
-            boxShadow: 'inset 0 1px 1px rgba(0, 0, 0, 0.1)', // Inner shadow for depth
-            width: '100px', // Set width to 50% of the parent element's width
-
-            fontSize: '0.8rem',          // Smaller font size
-            transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out' // Smooth transition for focus
-        };
-    return (
-        <div>
-        <input
-            type= "text"
-    value = { operand.name }
-    onChange = { handleNameChange }
-    placeholder = "Name"
-    style={inputStyle}
-        />
-        <input
-                type="text"
-        className=''
-    value = { operand.shapeString }
-    onChange = { handleShapeStringChange }
-    placeholder = "Shape (e.g., 2,3)"
-    style={{ ...inputStyle, ...shapeInputStyle }}
-    />
-        <button onClick={ onRemove }>❌ </button>
-        </div>
-    );
+  return (
+    <div className="flex items-center py-0.5">
+      <label className="sr-only" htmlFor={`${fieldId}-name`}>
+        Operand name
+      </label>
+      <input
+        id={`${fieldId}-name`}
+        type="text"
+        value={operand.name}
+        onChange={(event) =>
+          onUpdate({ ...operand, name: event.target.value })
+        }
+        placeholder="Name"
+        className={inputClassName}
+      />
+      <label className="sr-only" htmlFor={`${fieldId}-shape`}>
+        Operand shape
+      </label>
+      <input
+        id={`${fieldId}-shape`}
+        type="text"
+        value={operand.shapeText}
+        aria-invalid={!parsedShape.valid}
+        title={parsedShape.valid ? 'Shape' : parsedShape.reason}
+        onChange={(event) => {
+          const shapeText = event.target.value;
+          const parsed = parseShape(shapeText);
+          onUpdate({
+            ...operand,
+            shapeText,
+            shape: parsed.valid ? parsed.shape : operand.shape,
+          });
+        }}
+        placeholder="Shape (for example 2,3)"
+        className={`${inputClassName} ${
+          parsedShape.valid ? '' : 'border-red-600 text-red-700'
+        }`}
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="ml-1 rounded px-1 hover:bg-red-100"
+        aria-label={`Remove ${operand.name || 'operand'}`}
+      >
+        ×
+      </button>
+    </div>
+  );
 }
-
-export default OperandItem;

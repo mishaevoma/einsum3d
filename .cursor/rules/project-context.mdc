@@ -5,17 +5,11 @@ alwaysApply: true
 
 # Project context
 
-- Read `AGENTS.md` before editing and `FORK.md` before changing inherited code
-  or comparing with upstream.
+- Read `AGENTS.md` before editing and `FORK.md` before changing inherited renderer code.
 - Preserve unrelated working-tree changes.
-- Use Yarn 1 and treat `yarn.lock` as authoritative.
-- Edit product sources under `src/`, `styles/`, and `public/`; `docs/` is
-  generated GitHub Pages output.
-- The active render path is `LayerView.tsx` → `MyProgram.ts` →
-  `EinsumLayout.ts`. The similarly named path in `Program.ts` is legacy.
-- Preserve the `/einsum3d` base path and call `markDirty()` after mutating
-  shared program state.
-- Run `yarn lint` and use `yarn typecheck` to detect new errors, while noting
-  the documented pre-existing type failures.
-- Keep feature work separate from legacy cleanup, upstream synchronization, and
-  generated-site refreshes.
+- Use Yarn 4 via Corepack; `yarn.lock` is the only lockfile.
+- Edit product sources under `src/`, `styles/`, and `public/`. `out/` is generated and untracked.
+- The active path is `LayerView.tsx` → `program/EinsumProgram.ts` → `EinsumLayout.ts`.
+- Domain logic lives in `src/einsum/`. Call `markDirty()` after mutating program state.
+- Preserve the `/einsum3d` base path and use `assetUrl()` for static assets.
+- `yarn verify` must stay green; do not reintroduce `ignoreBuildErrors`.

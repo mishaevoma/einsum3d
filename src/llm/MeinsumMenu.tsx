@@ -1,29 +1,36 @@
-import React from 'react';
 interface TableOfContentsProps {
-    texts: string[];
-    selectedIndex?: number;
-    onEntryClick: (index: number) => void;
+  texts: string[];
+  selectedIndex?: number;
+  onEntryClick: (index: number) => void;
 }
 
-const TableOfContents: React.FC<TableOfContentsProps> = ({ texts, selectedIndex, onEntryClick }) => (
-    <ul style={{ listStyleType: 'none', padding: 0 }}>
-        {texts.map((text, index) => (
-            <li
-                key={index}
-                style={{
-                    padding: '10px 15px',
-                    cursor: 'pointer',
-                    backgroundColor: selectedIndex === index ? '#ADD8E6' : 'transparent', // Light blue background for selected item
-                    border: '1px solid #ddd',
-                    borderTopWidth: index === 0 ? '1px' : '0',
-                    fontWeight: selectedIndex === index ? 'bold' : 'normal'
-                }}
+export default function TableOfContents({
+  texts,
+  selectedIndex,
+  onEntryClick,
+}: TableOfContentsProps) {
+  return (
+    <nav aria-label="Einsum examples">
+      <ul className="m-0 list-none p-0">
+        {texts.map((text, index) => {
+          const selected = selectedIndex === index;
+          return (
+            <li key={text}>
+              <button
+                type="button"
+                aria-current={selected ? 'true' : undefined}
+                className={`w-full border border-slate-200 px-4 py-2 text-left ${
+                  selected ? 'bg-sky-200 font-bold' : 'hover:bg-slate-100'
+                }`}
                 onClick={() => onEntryClick(index)}
-            >
+              >
                 {text}
+              </button>
             </li>
-        ))}
-    </ul>
-);
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
 
-export default TableOfContents;

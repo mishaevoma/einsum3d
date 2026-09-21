@@ -2,6 +2,7 @@ import { base64ToArrayBuffer } from "@/src/utils/data";
 import { Mat4f } from "@/src/utils/matrix";
 import { bindFloatAttribs, createFloatBuffer, createShaderProgram, ensureFloatBufferSize, ensureShadersReady, IFloatBuffer, IGLContext, resetFloatBufferMap, uploadFloatBuffer } from "@/src/utils/shader";
 import { Vec4 } from "@/src/utils/vector";
+import { assetUrl } from "@/src/app/basePath";
 import { ISharedRender, modelViewUboText, RenderPhase, UboBindings } from "./sharedRender";
 
 export interface ICharDef {
@@ -58,20 +59,46 @@ export type IFontAtlas = ReturnType<typeof setupFontAtlas>;
 
 export interface IFontAtlasData {
     fontAtlasImage: HTMLImageElement;
-    fontDef: any;
+    fontDef: IFontDefinition;
+}
+
+interface IFontDefinition {
+    faces: Array<{
+        name: string;
+        chars: string;
+        kernings: string;
+        common: IFontCommonDef;
+    }>;
+}
+
+async function fetchFontAtlasImage(): Promise<HTMLImageElement> {
+    const response = await fetch(assetUrl('fonts/font-atlas.png'));
+    if (!response.ok) {
+        throw new Error(`Unable to load the font atlas image: ${response.status}.`);
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const image = new Image();
+    image.src = objectUrl;
+    try {
+        await image.decode();
+        return image;
+    } catch {
+        URL.revokeObjectURL(objectUrl);
+        throw new Error('Unable to decode the font atlas image.');
+    }
 }
 
 export async function fetchFontAtlasData(): Promise<IFontAtlasData> {
-    let imgEl = document.createElement('img');
-    let imgP = new Promise<HTMLImageElement>((resolve, reject) => {
-        imgEl.onload = () => resolve(imgEl);
-        imgEl.onerror = () => reject();
-    });
-    imgEl.src = 'fonts/font-atlas.png';
-
-    let fontDefP = fetch('fonts/font-def.json', { credentials: 'include', mode: 'no-cors' }).then(r => r.json());
-
-    let [fontAtlasImage, fontDef] = await Promise.all([imgP, fontDefP]);
+    const [fontAtlasImage, fontDef] = await Promise.all([
+        fetchFontAtlasImage(),
+        fetch(assetUrl('fonts/font-def.json')).then(async (response) => {
+            if (!response.ok) {
+                throw new Error(`Unable to load the font definition: ${response.status}.`);
+            }
+            return response.json() as Promise<IFontDefinition>;
+        }),
+    ]);
 
     return {
         fontAtlasImage,
@@ -80,13 +107,13 @@ export async function fetchFontAtlasData(): Promise<IFontAtlasData> {
 }
 
 export function setupFontAtlas(ctx: IGLContext, data: IFontAtlasData) {
-    let gl = ctx.gl;
+    const gl = ctx.gl;
 
     // With the fontDef, create a char -> glyph lookup
     // Create a kerning lookup (could use x1 * b + x2 for the keys)
-    let fontDef = data.fontDef;
+    const fontDef = data.fontDef;
 
-    let atlasTex = gl.createTexture();
+    const atlasTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, atlasTex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -98,7 +125,7 @@ export function setupFontAtlas(ctx: IGLContext, data: IFontAtlasData) {
 
     // See https://github.com/Chlumsky/msdfgen for information on how to implement (this is the format the font atlas is in)
 
-    let program = createShaderProgram(ctx.shaderManager, 'font', /*glsl*/`#version 300 es
+    const program = createShaderProgram(ctx.shaderManager, 'font', /*glsl*/`#version 300 es
         precision highp float;
         ${modelViewUboText}
         uniform sampler2D u_transformTex;
@@ -164,25 +191,25 @@ export function setupFontAtlas(ctx: IGLContext, data: IFontAtlasData) {
 
     ensureShadersReady(ctx.shaderManager);
 
-    let locs = program.locs;
+    const locs = program.locs;
     gl.useProgram(program.program);
     gl.uniform1i(locs.u_tex, 0);
     gl.uniform1i(locs.u_transformTex, 1);
 
-    let faceInfos = [];
+    const faceInfos = [];
 
-    for (let face of fontDef.faces) {
-        let charArr = new Int16Array(base64ToArrayBuffer(face.chars));
+    for (const face of fontDef.faces) {
+        const charArr = new Int16Array(base64ToArrayBuffer(face.chars));
 
-        let perCharSize = 12;
-        let numChars = charArr.length / perCharSize;
+        const perCharSize = 12;
+        const numChars = charArr.length / perCharSize;
 
-        let charMap = new Map<string, ICharDef>();
-        let charCodeMap = new Map<number, ICharDef>();
-        let chars: ICharDef[] = [];
+        const charMap = new Map<string, ICharDef>();
+        const charCodeMap = new Map<number, ICharDef>();
+        const chars: ICharDef[] = [];
         for (let i = 0; i < numChars; i++) {
-            let offset = i * perCharSize;
-            let char: ICharDef = {
+            const offset = i * perCharSize;
+            const char: ICharDef = {
                 id: charArr[offset + 0],
                 index: charArr[offset + 1],
                 char: String.fromCharCode(charArr[offset + 2]),
@@ -201,22 +228,22 @@ export function setupFontAtlas(ctx: IGLContext, data: IFontAtlasData) {
             chars.push(char);
         }
 
-        let kernArr = new Int16Array(base64ToArrayBuffer(face.kernings));
+        const kernArr = new Int16Array(base64ToArrayBuffer(face.kernings));
 
-        let perKernSize = 3;
-        let numKerns = kernArr.length / perKernSize;
+        const perKernSize = 3;
+        const numKerns = kernArr.length / perKernSize;
 
-        let kernMap = new Map<string, number>();
+        const kernMap = new Map<string, number>();
 
         for (let i = 0; i < numKerns; i++) {
-            let offset = i * perKernSize;
-            let kern = {
+            const offset = i * perKernSize;
+            const kern = {
                 first: kernArr[offset + 0],
                 second: kernArr[offset + 1],
                 amount: kernArr[offset + 2],
             };
-            let firstChar = charCodeMap.get(kern.first)!.char;
-            let secondChar = charCodeMap.get(kern.second)!.char;
+            const firstChar = charCodeMap.get(kern.first)!.char;
+            const secondChar = charCodeMap.get(kern.second)!.char;
             kernMap.set(`${firstChar}${secondChar}`, kern.amount);
         }
 
@@ -237,12 +264,12 @@ export function setupFontAtlas(ctx: IGLContext, data: IFontAtlasData) {
 }
 
 export function createFontBuffers(atlas: IFontAtlas, sharedRender: ISharedRender): IFontBuffers {
-    let gl = atlas.gl;
+    const gl = atlas.gl;
 
-    let segmentCapacity = 1024;
-    let glyphCapacity = 1024;
+    const segmentCapacity = 1024;
+    const glyphCapacity = 1024;
 
-    let transformTex = gl.createTexture()!;
+    const transformTex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, transformTex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -250,19 +277,19 @@ export function createFontBuffers(atlas: IFontAtlas, sharedRender: ISharedRender
     // we'll fill it in later
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, texWidth, computeTexHeight(segmentCapacity), 0, gl.RGBA, gl.FLOAT, null);
 
-    let vao = gl.createVertexArray()!;
+    const vao = gl.createVertexArray()!;
     gl.bindVertexArray(vao);
 
     // Just using 1 buffer for all text for now
-    let vertVbo = gl.createBuffer()!;
+    const vertVbo = gl.createBuffer()!;
     bindFloatAttribs(gl, vertVbo, {}, [
         { name: 'a_pos', size: 2 },
         { name: 'a_uv', size: 2 },
         { name: 'a_texIndex', size: 1 },
     ]);
-    let vertBuffer = createFloatBuffer(gl, gl.ARRAY_BUFFER, vertVbo, glyphCapacity, bytesPerVert, sharedRender);
+    const vertBuffer = createFloatBuffer(gl, gl.ARRAY_BUFFER, vertVbo, glyphCapacity, bytesPerVert, sharedRender);
 
-    let localTexBuffer = new Float32Array(segmentCapacity * floatsPerSegment);
+    const localTexBuffer = new Float32Array(segmentCapacity * floatsPerSegment);
 
     return {
         atlas,
@@ -282,19 +309,19 @@ export function computeTexHeight(numSegments: number) {
 }
 
  // Fudge factor to get it the same as HTML/CSS at the same px size
-let scaleFudgeFactor = 1.04;
+const scaleFudgeFactor = 1.04;
 
 export function measureTextWidth(fontBuf: IFontBuffers, text: string, scale: number = 1.0, faceName?: string) {
-    let face = faceName ? fontBuf.atlas.faceInfos.find(a => a.name === faceName)! : fontBuf.atlas.faceInfos[0];
+    const face = faceName ? fontBuf.atlas.faceInfos.find(a => a.name === faceName)! : fontBuf.atlas.faceInfos[0];
     let x = 0;
     let prevCodePoint = '';
-    for (let codePoint of text) {
-        let charDef = face.charMap.get(codePoint);
+    for (const codePoint of text) {
+        const charDef = face.charMap.get(codePoint);
         if (!charDef) {
             continue;
         }
-        let kernKey = `${prevCodePoint}${codePoint}`;
-        let kernAmount = face.kernMap.get(kernKey) || 0;
+        const kernKey = `${prevCodePoint}${codePoint}`;
+        const kernAmount = face.kernMap.get(kernKey) || 0;
         x += kernAmount + charDef.xadvance;
         prevCodePoint = codePoint;
     }
@@ -322,44 +349,44 @@ export function writeTextToBuffer(fontBuf: IFontBuffers, text: string, color: Ve
         face = fontBuf.atlas.faceInfos[0];
     }
 
-    let phase = fontBuf.sharedRender.activePhase;
-    let vertBuf = fontBuf.vertBuffer.localBufs[phase];
+    const phase = fontBuf.sharedRender.activePhase;
+    const vertBuf = fontBuf.vertBuffer.localBufs[phase];
     ensureFloatBufferSize(vertBuf, text.length * floatsPerVert);
     if (fontBuf.segmentsUsed === Math.floor(texWidth * 4 / floatsPerSegment)) {
         // the last segment on each texel row would overflow (it takes 5 texels), so we skip it
         fontBuf.segmentsUsed += 1;
     }
-    let segmentId = fontBuf.segmentsUsed;
-    let buf = vertBuf.buf;
+    const segmentId = fontBuf.segmentsUsed;
+    const buf = vertBuf.buf;
     let bufIdx = vertBuf.usedEls * fontBuf.vertBuffer.strideFloats;
-    let atlasWInv = 1.0 / face.common.scaleW;
-    let atlasHInv = 1.0 / face.common.scaleH;
+    const atlasWInv = 1.0 / face.common.scaleW;
+    const atlasHInv = 1.0 / face.common.scaleH;
     let numGlyphs = 0;
     let x = dx ?? 0;
-    let y = dy ?? 0;
+    const y = dy ?? 0;
     let prevCodePoint = '';
     scale = scale ?? 1.0;
-    let localScale = scale / face.common.lineHeight * scaleFudgeFactor;
-    for (let codePoint of text) {
-        let charDef = face.charMap.get(codePoint);
+    const localScale = scale / face.common.lineHeight * scaleFudgeFactor;
+    for (const codePoint of text) {
+        const charDef = face.charMap.get(codePoint);
         if (!charDef) {
             // TODO: Handle missing characters e.g. use a default character
             continue;
         }
-        let kernKey = `${prevCodePoint}${codePoint}`;
-        let kernAmount = face.kernMap.get(kernKey) || 0;
+        const kernKey = `${prevCodePoint}${codePoint}`;
+        const kernAmount = face.kernMap.get(kernKey) || 0;
         x += kernAmount * localScale;
 
-        let ux = [charDef.x * atlasWInv, (charDef.x + charDef.width) * atlasWInv];
-        let uy = [charDef.y * atlasHInv, (charDef.y + charDef.height) * atlasHInv];
+        const ux = [charDef.x * atlasWInv, (charDef.x + charDef.width) * atlasWInv];
+        const uy = [charDef.y * atlasHInv, (charDef.y + charDef.height) * atlasHInv];
 
-        let px = [x + charDef.xoffset * localScale, x + (charDef.xoffset + charDef.width) * localScale];
-        let py = [y + charDef.yoffset * localScale, y + (charDef.yoffset + charDef.height) * localScale];
+        const px = [x + charDef.xoffset * localScale, x + (charDef.xoffset + charDef.width) * localScale];
+        const py = [y + charDef.yoffset * localScale, y + (charDef.yoffset + charDef.height) * localScale];
 
-        let tri = [0, 1,  0, 0,  1, 1,  1, 1,  0, 0,  1, 0];
+        const tri = [0, 1,  0, 0,  1, 1,  1, 1,  0, 0,  1, 0];
         for (let i = 0; i < 6; i++) {
-            let ix = tri[i * 2];
-            let iy = tri[i * 2 + 1];
+            const ix = tri[i * 2];
+            const iy = tri[i * 2 + 1];
             buf[bufIdx++] = px[ix];
             buf[bufIdx++] = py[iy];
             buf[bufIdx++] = ux[ix];
@@ -380,8 +407,8 @@ export function writeTextToBuffer(fontBuf: IFontBuffers, text: string, color: Ve
     color = color ?? new Vec4(1, 1, 1, 1);
 
     if (fontBuf.segmentsUsed >= fontBuf.segmentCapacity) {
-        let newCapacity = fontBuf.segmentCapacity * 2;
-        let newBuf = new Float32Array(newCapacity * floatsPerSegment);
+        const newCapacity = fontBuf.segmentCapacity * 2;
+        const newBuf = new Float32Array(newCapacity * floatsPerSegment);
         newBuf.set(fontBuf.localTexBuffer);
         fontBuf.localTexBuffer = newBuf;
     }
@@ -392,22 +419,22 @@ export function writeTextToBuffer(fontBuf: IFontBuffers, text: string, color: Ve
 }
 
 export function uploadAllText(fontBuf: IFontBuffers) {
-    let atlas = fontBuf.atlas;
-    let gl = atlas.gl;
+    const atlas = fontBuf.atlas;
+    const gl = atlas.gl;
 
     // resize texture if needed
     gl.bindTexture(gl.TEXTURE_2D, fontBuf.transformTex);
 
     if (fontBuf.segmentCapacity > fontBuf.glSegmentCapacity) {
-        let w = 1024;
-        let h = Math.ceil(fontBuf.segmentCapacity * floatsPerSegment / 4 / w);
+        const w = 1024;
+        const h = Math.ceil(fontBuf.segmentCapacity * floatsPerSegment / 4 / w);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
         fontBuf.glSegmentCapacity = w * h / 4;
     }
 
     {
-        let w = 1024;
-        let h = Math.ceil(fontBuf.segmentsUsed * floatsPerSegment / 4 / w);
+        const w = 1024;
+        const h = Math.ceil(fontBuf.segmentsUsed * floatsPerSegment / 4 / w);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.FLOAT, fontBuf.localTexBuffer);
     }
 
@@ -415,15 +442,15 @@ export function uploadAllText(fontBuf: IFontBuffers) {
 }
 
 export function renderAllText(fontBuf: IFontBuffers, renderPhase: RenderPhase) {
-    let atlas = fontBuf.atlas;
-    let gl = atlas.gl;
+    const atlas = fontBuf.atlas;
+    const gl = atlas.gl;
 
     gl.disable(gl.CULL_FACE);
     gl.depthMask(false);
 
     gl.useProgram(atlas.program.program);
 
-    let locs = atlas.program.locs;
+    const locs = atlas.program.locs;
     gl.uniform1f(locs.pxRange, 4);
 
     gl.activeTexture(gl.TEXTURE0);
@@ -432,7 +459,7 @@ export function renderAllText(fontBuf: IFontBuffers, renderPhase: RenderPhase) {
     gl.bindTexture(gl.TEXTURE_2D, fontBuf.transformTex);
 
     gl.bindVertexArray(fontBuf.vao);
-    let localBuf = fontBuf.vertBuffer.localBufs[renderPhase];
+    const localBuf = fontBuf.vertBuffer.localBufs[renderPhase];
     gl.drawArrays(gl.TRIANGLES, localBuf.glOffsetEls, localBuf.usedEls);
 
     gl.depthMask(true);

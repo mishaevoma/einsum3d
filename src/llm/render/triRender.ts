@@ -19,24 +19,24 @@ export function initTriRender(ctx: IGLContext, sharedRender: ISharedRender) {
 
     */
 
-    let gl = ctx.gl;
+    const gl = ctx.gl;
 
-    let vao = gl.createVertexArray()!;
+    const vao = gl.createVertexArray()!;
     gl.bindVertexArray(vao);
 
-    let triVbo = gl.createBuffer()!;
-    let byteStride = bindFloatAttribs(gl, triVbo, {}, [
+    const triVbo = gl.createBuffer()!;
+    const byteStride = bindFloatAttribs(gl, triVbo, {}, [
         { name: 'a_pos', size: 3 },
         { name: 'a_normal', size: 3 },
         { name: 'a_color', size: 4 },
         { name: 'a_uv', size: 2 },
     ]);
-    let triFloatBuf = createFloatBuffer(gl, gl.ARRAY_BUFFER, triVbo, 1024, byteStride, null);
+    const triFloatBuf = createFloatBuffer(gl, gl.ARRAY_BUFFER, triVbo, 1024, byteStride, null);
 
-    let triIbo = gl.createBuffer()!;
-    let triIndexBuf = createElementBuffer(gl, triIbo, 1024, sharedRender);
+    const triIbo = gl.createBuffer()!;
+    const triIndexBuf = createElementBuffer(gl, triIbo, 1024, sharedRender);
 
-    let triShader = createShaderProgram(ctx, 'triangles', /*glsl*/`#version 300 es
+    const triShader = createShaderProgram(ctx, 'triangles', /*glsl*/`#version 300 es
         precision highp float;
         ${modelViewUboText}
         layout(location = 0) in vec3 a_position;
@@ -74,20 +74,20 @@ export function initTriRender(ctx: IGLContext, sharedRender: ISharedRender) {
     };
 }
 
-let defaultN = new Vec3(0, 0, 1);
+const defaultN = new Vec3(0, 0, 1);
 
-let _vertP = new Vec3();
-let _vertN = new Vec3();
+const _vertP = new Vec3();
+const _vertN = new Vec3();
 export function addVert(render: ITriRender, p: Vec3, color: Vec4, n?: Vec3, mtx?: Mat4f) {
-    let phase = render.sharedRender.activePhase;
-    let vbo = render.vbo.localBufs[0];
-    let ibo = render.ibo.localBufs[phase];
+    const phase = render.sharedRender.activePhase;
+    const vbo = render.vbo.localBufs[0];
+    const ibo = render.ibo.localBufs[phase];
     ensureFloatBufferSize(vbo, 1);
     ensureElementBufferSize(ibo, 1);
-    let fBuf = vbo.buf;
-    let iBuf = ibo.buf;
-    let fIdx = vbo.usedEls * vbo.strideFloats;
-    let iIdx = ibo.usedVerts;
+    const fBuf = vbo.buf;
+    const iBuf = ibo.buf;
+    const fIdx = vbo.usedEls * vbo.strideFloats;
+    const iIdx = ibo.usedVerts;
 
     if (mtx) {
         mtx.mulVec3Affine_(p, _vertP);
@@ -116,8 +116,8 @@ export function addVert(render: ITriRender, p: Vec3, color: Vec4, n?: Vec3, mtx?
     ibo.usedVerts += 1;
 }
 
-let _quadTr = new Vec3();
-let _quadBl = new Vec3();
+const _quadTr = new Vec3();
+const _quadBl = new Vec3();
 export function addQuad(render: ITriRender, tl: Vec3, br: Vec3, color: Vec4, mtx?: Mat4f, isEnd: boolean = true) {
     _quadTr.x = br.x;
     _quadTr.y = tl.y;
@@ -132,29 +132,29 @@ export function addQuad(render: ITriRender, tl: Vec3, br: Vec3, color: Vec4, mtx
     addVert(render, _quadTr, color, undefined, mtx);
     addVert(render, br, color, undefined, mtx);
     if (isEnd) {
-        let phase = render.sharedRender.activePhase;
-        let localBuf = render.ibo.localBufs[phase];
+        const phase = render.sharedRender.activePhase;
+        const localBuf = render.ibo.localBufs[phase];
         ensureElementBufferSize(localBuf, 1);
         localBuf.buf[localBuf.usedVerts++] = 0xffffffff; // primitive restart
     }
 }
 
 export function addPrimitiveRestart(render: ITriRender) {
-    let phase = render.sharedRender.activePhase;
-    let localBuf = render.ibo.localBufs[phase];
+    const phase = render.sharedRender.activePhase;
+    const localBuf = render.ibo.localBufs[phase];
     ensureElementBufferSize(localBuf, 1);
     localBuf.buf[localBuf.usedVerts++] = 0xffffffff; // primitive restart
 }
 
 export function uploadAllTris(render: ITriRender) {
-    let gl = render.gl;
+    const gl = render.gl;
     uploadFloatBuffer(gl, render.vbo);
     uploadElementBuffer(gl, render.ibo);
 }
 
 export function renderAllTris(render: ITriRender, renderPhase: RenderPhase) {
-    let gl = render.gl;
-    let localIdxBuf = render.ibo.localBufs[renderPhase];
+    const gl = render.gl;
+    const localIdxBuf = render.ibo.localBufs[renderPhase];
     if (localIdxBuf.usedVerts === 0) {
         return;
     }
@@ -173,7 +173,7 @@ export function resetTriRender(render: ITriRender) {
 }
 
 export function checkError(gl: WebGL2RenderingContext, msg: string) {
-    let errno = gl.getError();
+    const errno = gl.getError();
     if (errno !== gl.NO_ERROR) {
         console.error('GLERROR:', msg, '0x' + errno.toString(16));
         return true;

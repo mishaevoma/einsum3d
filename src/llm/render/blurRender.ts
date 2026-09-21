@@ -5,7 +5,7 @@ import { UboBindings } from "./sharedRender";
 export type IBlurRender = ReturnType<typeof initBlurRender>;
 
 export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject) {
-    let gl = ctx.gl;
+    const gl = ctx.gl;
 
     // have a pair of framebuffers to ping-pong between
     // we'll render to a half-size buffer to save memory/compute
@@ -28,15 +28,15 @@ export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject)
     //  - Render an expanded version of the object to our buffer, with a depth test (no write)
     //    - Write to the stencil buffer
     //  - Now do the blur, applying the stencil test
-    let w = Math.max(gl.canvas.width, 1);
-    let h = Math.max(gl.canvas.height, 1);
+    const w = Math.max(gl.canvas.width, 1);
+    const h = Math.max(gl.canvas.height, 1);
 
     // let stencilRenderBuf = gl.createRenderbuffer();
     // gl.bindRenderbuffer(gl.RENDERBUFFER, stencilRenderBuf);
     // gl.renderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, w, h);
 
-    let initialFbo = gl.createFramebuffer()!;
-    let initialTex = gl.createTexture()!;
+    const initialFbo = gl.createFramebuffer()!;
+    const initialTex = gl.createTexture()!;
     gl.bindFramebuffer(gl.FRAMEBUFFER, initialFbo);
     gl.bindTexture(gl.TEXTURE_2D, initialTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -51,8 +51,8 @@ export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject)
     // also attach depth buffer of primary scene fbo
 
     function createBlurFbo() {
-        let fbo = gl.createFramebuffer()!;
-        let tex = gl.createTexture()!;
+        const fbo = gl.createFramebuffer()!;
+        const tex = gl.createTexture()!;
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -65,7 +65,7 @@ export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject)
         // gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
 
         {
-            let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+            const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
             if (status !== gl.FRAMEBUFFER_COMPLETE) {
                 console.log(`Blur framebuffer not complete: ${status.toString(16)}`);
             }
@@ -74,19 +74,19 @@ export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject)
         return { fbo, tex };
     }
 
-    let blurFbos = [createBlurFbo(), createBlurFbo()];
+    const blurFbos = [createBlurFbo(), createBlurFbo()];
 
-    let radiusPx = 4;
-    let blurPixelStride = 2;
+    const radiusPx = 4;
+    const blurPixelStride = 2;
 
     // create ubo for blur shader, which are the [0..4] weights for the 5 samples (to the right of the center pixel & including)
-    let blurWeights = new Float32Array((radiusPx * 2 + 1) * 4);
+    const blurWeights = new Float32Array((radiusPx * 2 + 1) * 4);
     let blurWeightsSum = 0;
-    let blurSigma = radiusPx / 2;
+    const blurSigma = radiusPx / 2;
     for (let i = -radiusPx; i <= radiusPx; i++) {
-        let x = i / blurSigma;
-        let w = Math.exp(-x * x * 0.5);
-        let wIdx = i + radiusPx;
+        const x = i / blurSigma;
+        const w = Math.exp(-x * x * 0.5);
+        const wIdx = i + radiusPx;
         blurWeights[wIdx * 4] = w;
         blurWeightsSum += w;
     }
@@ -94,7 +94,7 @@ export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject)
         blurWeights[i * 4] /= blurWeightsSum;
     }
 
-    let blurUbo = gl.createBuffer();
+    const blurUbo = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, blurUbo);
     gl.bufferData(gl.UNIFORM_BUFFER, blurWeights.buffer, gl.STATIC_DRAW);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, UboBindings.blur, blurUbo);
@@ -129,10 +129,10 @@ export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject)
         `, ['u_texture'], { uboBindings: { 'BlurWeights': UboBindings.blur } })!;
     }
 
-    let horizShader = createBlurShader("blurHoriz", Dim.X);
-    let vertShader = createBlurShader("blurVert", Dim.Y);
+    const horizShader = createBlurShader("blurHoriz", Dim.X);
+    const vertShader = createBlurShader("blurVert", Dim.Y);
 
-    let overlayShader = createShaderProgram(ctx.shaderManager, "blurOverlay", /*glsl*/`#version 300 es
+    const overlayShader = createShaderProgram(ctx.shaderManager, "blurOverlay", /*glsl*/`#version 300 es
             precision highp float;
             layout(location = 0) in vec2 a_position;
             out vec2 v_uv;
@@ -177,11 +177,11 @@ export function initBlurRender(ctx: IGLContext, quadVao: WebGLVertexArrayObject)
 }
 
 export function setupBlurTarget(blur: IBlurRender) {
-    let gl = blur.gl;
-    let w = gl.canvas.width;
-    let h = gl.canvas.height;
-    let blurW = Math.floor(w * blur.blurFactor);
-    let blurH = Math.floor(h * blur.blurFactor);
+    const gl = blur.gl;
+    const w = gl.canvas.width;
+    const h = gl.canvas.height;
+    const blurW = Math.floor(w * blur.blurFactor);
+    const blurH = Math.floor(h * blur.blurFactor);
 
     if (blur.currViewSize.x !== w || blur.currViewSize.y !== h) {
         // gl.bindRenderbuffer(gl.RENDERBUFFER, blur.stencilRenderBuf);
@@ -190,7 +190,7 @@ export function setupBlurTarget(blur: IBlurRender) {
         gl.bindTexture(gl.TEXTURE_2D, blur.initialTex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
-        for (let fbo of blur.blurFbos) {
+        for (const fbo of blur.blurFbos) {
             gl.bindTexture(gl.TEXTURE_2D, fbo.tex);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         }
@@ -205,11 +205,11 @@ export function setupBlurTarget(blur: IBlurRender) {
 }
 
 export function renderBlur(blur: IBlurRender, destFbo: WebGLFramebuffer | null) {
-    let gl = blur.gl;
-    let w = gl.canvas.width;
-    let h = gl.canvas.height;
-    let blurW = Math.floor(w * blur.blurFactor);
-    let blurH = Math.floor(h * blur.blurFactor);
+    const gl = blur.gl;
+    const w = gl.canvas.width;
+    const h = gl.canvas.height;
+    const blurW = Math.floor(w * blur.blurFactor);
+    const blurH = Math.floor(h * blur.blurFactor);
     gl.bindVertexArray(blur.quadVao);
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);

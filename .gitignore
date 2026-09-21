@@ -4,14 +4,17 @@
 /node_modules
 /.pnp
 .pnp.js
+/.yarn/*
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
 /out/
-/docs/cache/
+/docs/
 
 # production
 /build
@@ -36,10 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# tailwind
+# tooling
 .turbo
 .vscode
 styles/dist.css
-
-*.wat
-src/cpu/tests/*_.s

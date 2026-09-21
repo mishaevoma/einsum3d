@@ -2,16 +2,15 @@ import { createFontBuffers, IFontAtlas, IFontAtlasData, IFontBuffers, measureTex
 import { Mat4f } from "@/src/utils/matrix";
 import { createShaderManager, ensureShadersReady, IGLContext } from "@/src/utils/shader";
 import { Vec3, Vec4 } from "@/src/utils/vector";
-import { IBlockRender, initBlockRender, renderAllBlocks, renderAllBlocksInstanced, renderBlocksSimple } from "./blockRender";
+import { IBlockRender, initBlockRender, renderAllBlocks, renderBlocksSimple } from "./blockRender";
 import { initBlurRender, renderBlur, setupBlurTarget } from "./blurRender";
 import { createLineRender, renderAllLines, resetLineRender, uploadAllLines } from "./lineRender";
-import { renderAllThreads, initThreadRender } from "./threadRender";
 import { initSharedRender, RenderPhase, writeModelViewUbo } from "./sharedRender";
 import { cameraToMatrixView } from "../Camera";
 import { initTriRender, renderAllTris, resetTriRender, uploadAllTris } from "./triRender";
 import { createQueryManager, IQueryManager } from "./queryManager";
-import { IProgramState } from "../Program";
 import { ISyncObject } from "./syncObjects";
+import type { ProgramState } from "../program/types";
 
 export interface IRenderView {
     time: number;
@@ -25,7 +24,6 @@ export interface IRenderState {
     ctx: IGLContext;
     blockRender: IBlockRender;
     lineRender: ReturnType<typeof createLineRender>;
-    threadRender: ReturnType<typeof initThreadRender>;
     blurRender: ReturnType<typeof initBlurRender>;
     sharedRender: ReturnType<typeof initSharedRender>;
     triRender: ReturnType<typeof initTriRender>;
@@ -45,13 +43,13 @@ export function initRender(canvasEl: HTMLCanvasElement, fontAtlasData: IFontAtla
     // init shaders for various block types
 
     // console.clear();
-    let gl = canvasEl.getContext("webgl2", { antialias: true })!;
+    const gl = canvasEl.getContext("webgl2", { antialias: true })!;
 
     if (!gl) {
         return null;
     }
 
-    let ext: IGLContext['ext'] = {
+    const ext: IGLContext['ext'] = {
         colorBufferFloat: gl.getExtension("EXT_color_buffer_float"),
         disjointTimerQuery: gl.getExtension('EXT_disjoint_timer_query_webgl2'),
     };
@@ -64,11 +62,11 @@ export function initRender(canvasEl: HTMLCanvasElement, fontAtlasData: IFontAtla
         console.log("initRender: EXT_disjoint_timer_query_webgl2 not supported: GPU timing will not work.");
     }
 
-    let shaderManager = createShaderManager(gl);
+    const shaderManager = createShaderManager(gl);
 
-    let ctx: IGLContext = { gl, shaderManager, ext };
+    const ctx: IGLContext = { gl, shaderManager, ext };
 
-    let quadVbo = gl.createBuffer();
+    const quadVbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quadVbo);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
         -1, -1,
@@ -77,22 +75,21 @@ export function initRender(canvasEl: HTMLCanvasElement, fontAtlasData: IFontAtla
         -1, 1,
     ]), gl.STATIC_DRAW);
 
-    let quadVao = gl.createVertexArray()!;
+    const quadVao = gl.createVertexArray()!;
     gl.bindVertexArray(quadVao);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-    let sharedRender = initSharedRender(ctx);
+    const sharedRender = initSharedRender(ctx);
 
-    let fontAtlas = setupFontAtlas(ctx, fontAtlasData);
+    const fontAtlas = setupFontAtlas(ctx, fontAtlasData);
 
-    let modelFontBuf = createFontBuffers(fontAtlas, sharedRender);
-    let threadRender = initThreadRender(ctx);
-    let lineRender = createLineRender(ctx, sharedRender);
-    let blockRender = initBlockRender(ctx);
-    let triRender = initTriRender(ctx, sharedRender);
-    let blurRender = initBlurRender(ctx, quadVao);
-    let queryManager = createQueryManager(ctx);
+    const modelFontBuf = createFontBuffers(fontAtlas, sharedRender);
+    const lineRender = createLineRender(ctx, sharedRender);
+    const blockRender = initBlockRender(ctx);
+    const triRender = initTriRender(ctx, sharedRender);
+    const blurRender = initBlurRender(ctx, quadVao);
+    const queryManager = createQueryManager(ctx);
 
     ensureShadersReady(shaderManager);
 
@@ -101,7 +98,6 @@ export function initRender(canvasEl: HTMLCanvasElement, fontAtlasData: IFontAtla
         gl,
         ctx,
         blockRender,
-        threadRender,
         lineRender,
         blurRender,
         triRender,
@@ -124,29 +120,15 @@ export function resetRenderBuffers(args: IRenderState) {
     resetTriRender(args.triRender);
 }
 
-export function renderModel(state: IProgramState) {
-    let { layout, render: args, camera } = state;
-    let { gl, blockRender, size } = args;
-
-    let { modelMtx, viewMtx } = camera;
-    let { camPos } = cameraToMatrixView(camera);
-
-    let lightPos = [
-        new Vec3(100, 400, 600),
-        new Vec3(-200, -300, -300),
-        new Vec3(200, -100, 0),
-    ];
-    let lightColor = [
-        new Vec3(1, 0.2, 0.2),
-        new Vec3(1, 0.2, 0.2),
-        new Vec3(1, 0.2, 0.2),
-    ];
-    let lightPosArr = new Float32Array(3 * 3);
-    let lightColorArr = new Float32Array(3 * 3);
-    for (let i = 0; i < 3; i++) {
-        modelMtx.mulVec3Proj(lightPos[i]).writeToBuf(lightPosArr, i * 3);
-        modelMtx.mulVec3Proj(lightColor[i]).writeToBuf(lightColorArr, i * 3);
+export function renderModel(state: ProgramState) {
+    const { layout, render: args, camera } = state;
+    if (!args) {
+        return;
     }
+    const { gl, blockRender, size } = args;
+
+    const { modelMtx, viewMtx } = camera;
+    const { camPos } = cameraToMatrixView(camera);
 
 
     /// ------ The render pass ------ ///
@@ -167,18 +149,18 @@ export function renderModel(state: IProgramState) {
     gl.frontFace(gl.CW); // our transform has a -ve determinant, so we switch this for correct rendering
 
     if (args.renderTiming) {
-        let text = `GPU: ${args.lastGpuMs.toFixed(1)}ms JS: ${args.lastJsMs.toFixed(1)}ms`;
-        let w = size.x;
-        let fontSize = 14;
+        const text = `GPU: ${args.lastGpuMs.toFixed(1)}ms JS: ${args.lastJsMs.toFixed(1)}ms`;
+        const w = size.x;
+        const fontSize = 14;
         args.sharedRender.activePhase = RenderPhase.Overlay2D;
-        let tw = measureTextWidth(args.modelFontBuf, text, fontSize);
+        const tw = measureTextWidth(args.modelFontBuf, text, fontSize);
         writeTextToBuffer(args.modelFontBuf, text, new Vec4(0,0,0,1), w - tw - 4, 4, fontSize, new Mat4f());
     }
 
     writeModelViewUbo(args.sharedRender, modelMtx, viewMtx);
 
     {
-        let blurBlocks = layout.cubes.filter(a => a.highlight > 0)
+        const blurBlocks = layout.cubes.filter(a => a.highlight > 0)
         setupBlurTarget(args.blurRender);
         renderBlocksSimple(blockRender, blurBlocks);
 
@@ -190,32 +172,18 @@ export function renderModel(state: IProgramState) {
     uploadAllTris(args.triRender);
     uploadAllText(args.modelFontBuf);
 
-    renderAllBlocks(blockRender, layout, modelMtx, camPos, lightPosArr, lightColorArr);
+    renderAllBlocks(blockRender, layout, modelMtx, camPos);
 
     args.sharedRender.activePhase = RenderPhase.Opaque;
 
-    for (let example of state.examples) {
-        if (example.enabled && example.layout) {
-            let { modelMtx, viewMtx } = camera;
-            let { camPos } = cameraToMatrixView(camera);
-            var modelMtxLocal = modelMtx.mul(Mat4f.fromTranslation(example.offset));
-            writeModelViewUbo(args.sharedRender, modelMtxLocal, viewMtx);
-            renderAllBlocksInstanced(example.blockRender, example.layout, modelMtxLocal, camPos);
-        }
-    }
-
-    writeModelViewUbo(args.sharedRender, modelMtx, viewMtx);
-
-    renderAllThreads(args.threadRender);
-
     gl.polygonOffset(-1.0, -2.0);
 
-    let phaseOrder = [RenderPhase.Opaque, RenderPhase.Arrows, RenderPhase.Overlay, RenderPhase.Overlay2D];
-    for (let phase of phaseOrder) {
+    const phaseOrder = [RenderPhase.Opaque, RenderPhase.Arrows, RenderPhase.Overlay, RenderPhase.Overlay2D];
+    for (const phase of phaseOrder) {
 
         if (phase === RenderPhase.Overlay2D) {
-            let w = size.x;
-            let h = size.y;
+            const w = size.x;
+            const h = size.y;
             gl.clear(gl.DEPTH_BUFFER_BIT);
             writeModelViewUbo(args.sharedRender, new Mat4f(), Mat4f.fromOrtho(0, w, h, 0, -1, 1));
         }

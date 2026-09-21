@@ -10,11 +10,11 @@ export interface ILayout {
 }
 
 export function useScreenLayout() {
-    let [layout, setLayout] = useState<ILayout>({ width: 0, height: 0, isDesktop: true, isPhone: false });
+    const [layout, setLayout] = useState<ILayout>({ width: 0, height: 0, isDesktop: true, isPhone: false });
 
     useLayoutEffect(() => {
         // check the media queries that we use in css land
-        let mediaQuery = window.matchMedia('screen and (max-width: 800px)');
+        const mediaQuery = window.matchMedia('screen and (max-width: 800px)');
 
         function handleResize() {
             setLayout({
@@ -39,14 +39,14 @@ export function useScreenLayout() {
 }
 
 export function useResizeChangeHandler(el: HTMLElement | undefined | null, handler: (size: Vec3, bcr: DOMRect) => void) {
-    let handlerRef = useFunctionRef(handler);
+    const handlerRef = useFunctionRef(handler);
     useLayoutEffect(() => {
         if (!el) return;
         function handleResize() {
-            let bcr = el!.getBoundingClientRect();
+            const bcr = el!.getBoundingClientRect();
             handlerRef.current(new Vec3(bcr.width, bcr.height, 0), bcr);
         }
-        let observer = new ResizeObserver(handleResize);
+        const observer = new ResizeObserver(handleResize);
         observer.observe(el);
         handleResize();
         return () => observer.disconnect();

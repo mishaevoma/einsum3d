@@ -14,7 +14,7 @@ export interface EXT_disjoint_timer_query_webgl2 {
     TIME_ELAPSED_EXT: number;
 }
 
-export interface IProgram<T extends string = any> {
+export interface IProgram<T extends string = string> {
     name: string;
     program: WebGLProgram;
     vertShader: WebGLShader;
@@ -53,11 +53,11 @@ export function createShaderProgram<T extends string>(manager: IShaderManager | 
         manager = manager.shaderManager;
     }
 
-    let gl = manager.gl;
+    const gl = manager.gl;
 
-    let program = gl.createProgram()!;
+    const program = gl.createProgram()!;
 
-    function compileAndAttachShader(type: number, source: string, typeStr: string, map: Map<string, WebGLShader>) {
+    function compileAndAttachShader(type: number, source: string, map: Map<string, WebGLShader>) {
         let shader = map.get(source);
         if (!shader) {
             shader = gl.createShader(type)!;
@@ -69,18 +69,18 @@ export function createShaderProgram<T extends string>(manager: IShaderManager | 
         return shader;
     }
 
-    let vertShader = compileAndAttachShader(gl.VERTEX_SHADER, vert, 'vert', manager.vertShaders);
-    let fragShader = compileAndAttachShader(gl.FRAGMENT_SHADER, frag, 'frag', manager.fragShaders);
+    const vertShader = compileAndAttachShader(gl.VERTEX_SHADER, vert, manager.vertShaders);
+    const fragShader = compileAndAttachShader(gl.FRAGMENT_SHADER, frag, manager.fragShaders);
 
-    let locs = {} as Record<T, WebGLUniformLocation>;
+    const locs = {} as Record<T, WebGLUniformLocation>;
 
     if (uniformNames) {
-        for (let name of uniformNames) {
+        for (const name of uniformNames) {
             locs[name] = -1;
         }
     }
 
-    let prog: IProgram<T> = {
+    const prog: IProgram<T> = {
         name,
         program,
         vertSource: vert,
@@ -99,19 +99,19 @@ export function createShaderProgram<T extends string>(manager: IShaderManager | 
 
 
 export function ensureShadersReady(manager: IShaderManager) {
-    let gl = manager.gl;
+    const gl = manager.gl;
 
-    for (let prog of manager.unlinkedPrograms) {
+    for (const prog of manager.unlinkedPrograms) {
         gl.linkProgram(prog.program);
     }
 
-    for (let prog of manager.unlinkedPrograms) {
-        let program = prog.program;
+    for (const prog of manager.unlinkedPrograms) {
+        const program = prog.program;
 
         if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
 
-            for (let name of Object.keys(prog.locs)) {
-                let loc = gl.getUniformLocation(program, name);
+            for (const name of Object.keys(prog.locs)) {
+                const loc = gl.getUniformLocation(program, name);
                 if (!loc) {
                     console.log(`uniform of ${prog.name} not found: ${name} (may just be unused)`);
                 }
@@ -119,8 +119,8 @@ export function ensureShadersReady(manager: IShaderManager) {
             }
             prog.ready = true;
 
-            for (let uboName of Object.keys(prog.uboBindings)) {
-                let uboIndex = gl.getUniformBlockIndex(program, uboName);
+            for (const uboName of Object.keys(prog.uboBindings)) {
+                const uboIndex = gl.getUniformBlockIndex(program, uboName);
                 if (uboIndex < 0) {
                     console.log(`ubo of ${prog.name} not found: ${uboName} (may just be unused)`);
                 }
@@ -129,9 +129,9 @@ export function ensureShadersReady(manager: IShaderManager) {
 
         } else {
 
-            let progInfoLog = gl.getProgramInfoLog(program);
+            const progInfoLog = gl.getProgramInfoLog(program);
             if (progInfoLog) {
-                let prefix = `---- '${prog.name}' program info log ----`;
+                const prefix = `---- '${prog.name}' program info log ----`;
                 console.log(`${prefix}\n` + gl.getProgramInfoLog(program)?.replace('\x00', '').trimEnd());
             }
 
@@ -144,9 +144,9 @@ export function ensureShadersReady(manager: IShaderManager) {
     manager.unlinkedPrograms = [];
 
     function logShader(shader: WebGLShader, name: string, typeStr: string) {
-        let infoLog = gl.getShaderInfoLog(shader);
+        const infoLog = gl.getShaderInfoLog(shader);
         if (infoLog) {
-            let prefix = `---- ${name} ${typeStr} shader info log ----`;
+            const prefix = `---- ${name} ${typeStr} shader info log ----`;
             console.log(`${prefix}\n` + infoLog.replace('\x00', '').trimEnd());
         }
     }
@@ -168,12 +168,12 @@ export function bindFloatAttribs(gl: WebGL2RenderingContext, buf: WebGLBuffer, o
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     let locId = opts.locOffset || 0;
     let offset = opts.bufOffset || 0;
-    let divisor = opts.divisor || 0;
+    const divisor = opts.divisor || 0;
     let byteStride = 0;
-    for (let a of attribs) {
+    for (const a of attribs) {
         byteStride += a.size * 4 * (a.nCols ?? 1);
     }
-    for (let a of attribs) {
+    for (const a of attribs) {
         for (let i = 0; i < (a.nCols ?? 1); i++) {
             gl.enableVertexAttribArray(locId);
             gl.vertexAttribPointer(locId, a.size, gl.FLOAT, false, byteStride, offset);
@@ -213,17 +213,17 @@ export interface IFloatBuffer {
 }
 
 export function createFloatBuffer(gl: WebGL2RenderingContext, target: number, buf: WebGLBuffer, capacityEls: number, strideBytes: number, sharedRender: ISharedRender | null): IFloatBuffer {
-    let numPhases = sharedRender?.numPhases || 1;
+    const numPhases = sharedRender?.numPhases || 1;
     if (target === gl.UNIFORM_BUFFER) {
-        let uboBlockOffsetAlign = gl.getParameter(gl.UNIFORM_BUFFER_OFFSET_ALIGNMENT);
+        const uboBlockOffsetAlign = gl.getParameter(gl.UNIFORM_BUFFER_OFFSET_ALIGNMENT);
         strideBytes = roundUpTo(strideBytes, uboBlockOffsetAlign);
     }
 
-    let strideFloats = strideBytes / 4;
+    const strideFloats = strideBytes / 4;
     gl.bindBuffer(target, buf);
     gl.bufferData(target, capacityEls * strideBytes, gl.DYNAMIC_DRAW);
 
-    let localBufs: IFloatLocalBuffer[] = [];
+    const localBufs: IFloatLocalBuffer[] = [];
     for (let i = 0; i < numPhases; i++) {
         localBufs.push({
             buf: new Float32Array(capacityEls * strideFloats),
@@ -239,14 +239,14 @@ export function createFloatBuffer(gl: WebGL2RenderingContext, target: number, bu
 }
 
 export function ensureFloatBufferSize(localBuf: IFloatLocalBuffer, countEls: number) {
-    let newUsedEls = localBuf.usedEls + countEls;
+    const newUsedEls = localBuf.usedEls + countEls;
 
     if (newUsedEls > localBuf.capacityEls) {
         while (newUsedEls > localBuf.capacityEls) {
             localBuf.capacityEls *= 2;
         }
 
-        let newLocalBuf = new Float32Array(localBuf.capacityEls * localBuf.strideFloats);
+        const newLocalBuf = new Float32Array(localBuf.capacityEls * localBuf.strideFloats);
         newLocalBuf.set(localBuf.buf);
         localBuf.buf = newLocalBuf;
     }
@@ -257,7 +257,7 @@ export function uploadFloatBuffer(gl: WebGL2RenderingContext, bufMap: IFloatBuff
 
     let totalUsed = 0;
     for (let i = 0; i < bufMap.localBufs.length; i++) {
-        let localBuf = bufMap.localBufs[i];
+        const localBuf = bufMap.localBufs[i];
         totalUsed += localBuf.usedEls;
     }
 
@@ -270,7 +270,7 @@ export function uploadFloatBuffer(gl: WebGL2RenderingContext, bufMap: IFloatBuff
 
     let offsetEls = 0;
     for (let i = 0; i < bufMap.localBufs.length; i++) {
-        let localBuf = bufMap.localBufs[i];
+        const localBuf = bufMap.localBufs[i];
         localBuf.glOffsetEls = offsetEls;
         if (localBuf.usedEls > 0) {
             gl.bufferSubData(bufMap.target, offsetEls * bufMap.strideBytes, localBuf.buf.subarray(0, localBuf.usedEls * localBuf.strideFloats));
@@ -300,11 +300,11 @@ export interface IElementBuffer {
 }
 
 export function createElementBuffer(gl: WebGL2RenderingContext, buf: WebGLBuffer, capacityVerts: number, sharedRender: ISharedRender | null): IElementBuffer {
-    let numPhases = sharedRender?.numPhases || 1;
+    const numPhases = sharedRender?.numPhases || 1;
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, capacityVerts * 4, gl.DYNAMIC_DRAW);
 
-    let localBufs: IELementLocalBuffer[] = [];
+    const localBufs: IELementLocalBuffer[] = [];
     for (let i = 0; i < numPhases; i++) {
         localBufs.push({
             buf: new Uint32Array(capacityVerts),
@@ -318,7 +318,7 @@ export function createElementBuffer(gl: WebGL2RenderingContext, buf: WebGLBuffer
 }
 
 export function ensureElementBufferSize(localBuf: IELementLocalBuffer, countVerts: number) {
-    let newUsedVerts = localBuf.usedVerts + countVerts;
+    const newUsedVerts = localBuf.usedVerts + countVerts;
 
     if (newUsedVerts > localBuf.capacityVerts) {
         let newCapacityVerts = localBuf.capacityVerts * 2;
@@ -326,7 +326,7 @@ export function ensureElementBufferSize(localBuf: IELementLocalBuffer, countVert
             newCapacityVerts *= 2;
         }
 
-        let newLocalBuf = new Uint32Array(newCapacityVerts);
+        const newLocalBuf = new Uint32Array(newCapacityVerts);
         newLocalBuf.set(localBuf.buf);
 
         localBuf.capacityVerts = newCapacityVerts;
@@ -339,7 +339,7 @@ export function uploadElementBuffer(gl: WebGL2RenderingContext, bufMap: IElement
 
     let totalUsed = 0;
     for (let i = 0; i < bufMap.localBufs.length; i++) {
-        let localBuf = bufMap.localBufs[i];
+        const localBuf = bufMap.localBufs[i];
         totalUsed += localBuf.usedVerts;
     }
 
@@ -352,9 +352,9 @@ export function uploadElementBuffer(gl: WebGL2RenderingContext, bufMap: IElement
 
     let offsetIndex = 0;
     for (let i = 0; i < bufMap.localBufs.length; i++) {
-        let localBuf = bufMap.localBufs[i];
+        const localBuf = bufMap.localBufs[i];
         localBuf.glOffsetBytes = offsetIndex * 4;
-        let srcBuf = localBuf.buf.subarray(0, localBuf.usedVerts);
+        const srcBuf = localBuf.buf.subarray(0, localBuf.usedVerts);
         if (localBuf.usedVerts > 0) {
             gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, offsetIndex * 4, srcBuf);
         }

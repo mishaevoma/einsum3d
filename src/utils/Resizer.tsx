@@ -1,62 +1,139 @@
-import clsx from "clsx";
-import React, { useState } from "react";
-import { clamp } from "./data";
-import { useCombinedMouseTouchDrag } from "./pointer";
+'use client';
 
-export const Resizer: React.FC<{
-    id: string;
-    className?: string;
-    vertical?: boolean;
-    defaultFraction?: number;
-    children: React.ReactNode[];
-}> = ({ id, className, children, vertical, defaultFraction }) => {
+import {
+  Children,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  useRef,
+  useState,
+} from 'react';
+import clsx from 'clsx';
+import { clamp } from './data';
 
-    let [parentEl, setParentEl] = useState<HTMLElement | null>(null);
-    let [sliderHitEl, setSliderHitEl] = useState<HTMLElement | null>(null);
-    let childrenArr = React.Children.toArray(children).filter(a => a);
-    let firstChild = childrenArr[0] as React.ReactElement;
-    let scndChild = childrenArr[1] as React.ReactElement;
+interface ResizerProps {
+  id: string;
+  className?: string;
+  vertical?: boolean;
+  defaultFraction?: number;
+  children: ReactNode;
+}
 
-    let [fraction, setFraction] = useState(defaultFraction ?? 0.4);
+interface DragStart {
+  coordinate: number;
+  fraction: number;
+}
 
-    let [, setDragStart] = useCombinedMouseTouchDrag(sliderHitEl, () => fraction, (ev, ds, end) => {
-        let parentBcr = parentEl!.getBoundingClientRect();
-        let deltaPx = vertical ? ev.clientY - ds.clientY : ev.clientX - ds.clientX;
-        let fullSizePx = vertical ? parentBcr.height : parentBcr.width;
-        let newFraction = clamp(ds.data + deltaPx / fullSizePx, 0, 1);
-        setFraction(newFraction);
-        ev.preventDefault();
-        ev.stopPropagation();
-    });
+export function Resizer({
+  id,
+  className,
+  children,
+  vertical = false,
+  defaultFraction = 0.4,
+}: ResizerProps) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<DragStart | null>(null);
+  const [fraction, setFraction] = useState(defaultFraction);
+  const visibleChildren = Children.toArray(children).filter(Boolean);
+  const firstChild = visibleChildren[0];
+  const secondChild = visibleChildren[1];
+  const hasBothChildren = Boolean(firstChild && secondChild);
+  const percentage = `${fraction * 100}%`;
+  const inversePercentage = `${(1 - fraction) * 100}%`;
 
-    function handleMouseDown(ev: React.MouseEvent) {
-        setDragStart(ev);
-        ev.stopPropagation();
-        ev.preventDefault();
+  const coordinate = (event: ReactPointerEvent) =>
+    vertical ? event.clientY : event.clientX;
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStart.current = {
+      coordinate: coordinate(event),
+      fraction,
+    };
+    event.preventDefault();
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = dragStart.current;
+    const parent = parentRef.current;
+    if (!start || !parent) {
+      return;
     }
+    const bounds = parent.getBoundingClientRect();
+    const size = vertical ? bounds.height : bounds.width;
+    if (size > 0) {
+      setFraction(
+        clamp(
+          start.fraction + (coordinate(event) - start.coordinate) / size,
+          0,
+          1,
+        ),
+      );
+    }
+  };
 
-    let pct = (fraction * 100) + '%';
-    let invPct = ((1 - fraction) * 100) + '%';
-    let hasBothChildren = firstChild && scndChild;
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    dragStart.current = null;
+  };
 
-    return <div ref={setParentEl} className={clsx("relative flex", className, vertical ? 'flex-col' : 'flex-row')}>
-        {firstChild && <div className="flex flex-initial overflow-hidden" style={{ flexBasis: hasBothChildren ? pct : '100%' }}>
-            {firstChild}
-        </div>}
-        {scndChild && <div className="flex flex-initial overflow-hidden" style={{ flexBasis: hasBothChildren ? invPct : '100%' }}>
-            {scndChild}
-        </div>}
-        {hasBothChildren && <>
-            <div
-                ref={setSliderHitEl}
-                className={clsx("absolute", vertical ? "w-full cursor-ns-resize h-4" : "h-full cursor-ew-resize w-4")}
-                style={{ transform: `translate${vertical ? 'Y' : 'X'}(-50%)`, top: vertical ? pct : undefined, left: vertical ? undefined : pct }}
-                onMouseDown={handleMouseDown}>
-            </div>
-            <div
-                className={clsx("absolute bg-slate-200 pointer-events-none", vertical ? "w-full h-0 border-t" : "h-full w-0 border-l")}
-                style={{ transform: `translate${vertical ? 'Y' : 'X'}(-50%)`, top: vertical ? pct : undefined, left: vertical ? undefined : pct }}>
-            </div>
-        </>}
-    </div>;
-};
+  return (
+    <div
+      id={id}
+      ref={parentRef}
+      className={clsx(
+        'relative flex',
+        className,
+        vertical ? 'flex-col' : 'flex-row',
+      )}
+    >
+      {firstChild && (
+        <div
+          className="flex flex-initial overflow-hidden"
+          style={{ flexBasis: hasBothChildren ? percentage : '100%' }}
+        >
+          {firstChild}
+        </div>
+      )}
+      {secondChild && (
+        <div
+          className="flex flex-initial overflow-hidden"
+          style={{ flexBasis: hasBothChildren ? inversePercentage : '100%' }}
+        >
+          {secondChild}
+        </div>
+      )}
+      {hasBothChildren && (
+        <>
+          <div
+            className={clsx(
+              'absolute touch-none',
+              vertical
+                ? 'h-4 w-full cursor-ns-resize'
+                : 'h-full w-4 cursor-ew-resize',
+            )}
+            style={{
+              transform: `translate${vertical ? 'Y' : 'X'}(-50%)`,
+              top: vertical ? percentage : undefined,
+              left: vertical ? undefined : percentage,
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+          />
+          <div
+            className={clsx(
+              'pointer-events-none absolute bg-slate-200',
+              vertical ? 'h-0 w-full border-t' : 'h-full w-0 border-l',
+            )}
+            style={{
+              transform: `translate${vertical ? 'Y' : 'X'}(-50%)`,
+              top: vertical ? percentage : undefined,
+              left: vertical ? undefined : percentage,
+            }}
+          />
+        </>
+      )}
+    </div>
+  );
+}

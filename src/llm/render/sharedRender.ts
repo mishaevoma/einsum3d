@@ -28,19 +28,19 @@ export type ISharedRender = {
 }
 
 export function initSharedRender(ctx: IGLContext): ISharedRender {
-    let gl = ctx.gl;
+    const gl = ctx.gl;
 
-    let modelViewUbo = gl.createBuffer()!;
+    const modelViewUbo = gl.createBuffer()!;
     gl.bindBuffer(gl.UNIFORM_BUFFER, modelViewUbo);
     gl.bufferData(gl.UNIFORM_BUFFER, 2 * 16 * 4, gl.DYNAMIC_DRAW);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, UboBindings.ModelView, modelViewUbo);
-    let modelViewBuf = new Float32Array(2 * 16);
+    const modelViewBuf = new Float32Array(2 * 16);
 
     return { gl, modelViewUbo, modelViewBuf, activePhase: RenderPhase.Opaque, numPhases: NumRenderPhases };
 }
 
 export function writeModelViewUbo(sharedRender: ISharedRender, modelMtx: Mat4f, viewMtx: Mat4f) {
-    let { gl, modelViewUbo, modelViewBuf } = sharedRender;
+    const { gl, modelViewUbo, modelViewBuf } = sharedRender;
 
     modelViewBuf.set(modelMtx, 0);
     modelViewBuf.set(viewMtx, 16);

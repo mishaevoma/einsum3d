@@ -1,70 +1,56 @@
-import s from './Sidebar.module.scss';
-import React, { createContext, useContext, useState } from 'react';
-import clsx from 'clsx';
+'use client';
+
+import { useState, useSyncExternalStore } from 'react';
+import type { EinsumState } from '@/src/einsum';
+import { EinsumDemoApp } from '@/src/app/meinsum/EinsumDemoApp';
+import {
+  selectPreset,
+  updateCurrentEinsumState,
+} from './program/EinsumProgram';
 import { useProgramState } from './Sidebar';
-import { PhaseTimeline } from './PhaseTimeline';
-import { Commentary } from './Commentary';
-import { IProgramState } from './Program';
-import { Popup, PopupPos } from '@/src/utils/Portal';
-import { useSubscriptions } from '../utils/hooks';
-import { EinsumDemoApp, IEinsumProgramState, IOutput as IViewOutput } from '@/src/app/meinsum/EinsumDemoApp';
 import TableOfContents from './MeinsumMenu';
-import { IEinsumMenuItem } from './MyProgram';
+import styles from './Sidebar.module.scss';
 
-export const MeinsumSidebar: React.FC = () => {
-    let progState = useProgramState();
-    const {einsumStates, currentEinsumState} = progState;
+function useIsHydrated(): boolean {
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+}
 
-    const {state, name} = einsumStates[currentEinsumState];
-    // console.log(state);
-    // if (!progState) return <div></div>
+export function MeinsumSidebar() {
+  const program = useProgramState();
+  const [, rerender] = useState(0);
+  const ready = useIsHydrated();
+  const preset = program.presets[program.currentPresetIndex];
+  const flush = () => rerender((value) => value + 1);
 
-    function handleStateChanged(newState: IEinsumProgramState) {
-        const i = currentEinsumState;
-        const newStates: IEinsumMenuItem[] = [...einsumStates.slice(0,i), {name, state:newState}, ...einsumStates.slice(i+1)]
-        progState.einsumStates = newStates;
-        progState.markDirty()
-    }
+  const handleStateChanged = (state: EinsumState) => {
+    updateCurrentEinsumState(program, state);
+    flush();
+  };
 
-    function handleEntryClick(i: number) {
-        progState.currentEinsumState = i;
-        progState.markDirty();
-    }
+  const handleEntryClick = (index: number) => {
+    selectPreset(program, index);
+    flush();
+  };
 
-    const texts = einsumStates.map(s => s.name)
-
-
-    let menu = <>
-        <div className={s.topSplit}>
-            <div className={s.toc}>
-            </div>
-            {/* <div className={s.helpers}>
-                <div className={s.camStats}>
-                    (center, center) =
-                </div>
-                <div className={s.camStats}>
-                    new {camera.center.toString(1)}, new {camera.angle.toString(1)}
-                </div>
-            </div> */}
+  return (
+    <aside className={styles.walkthrough} data-editor-ready={ready}>
+      <div className={styles.split}>
+        <div className={styles.content}>
+          <TableOfContents
+            texts={program.presets.map((item) => item.name)}
+            selectedIndex={program.currentPresetIndex}
+            onEntryClick={handleEntryClick}
+          />
+          <EinsumDemoApp
+            state={preset.state}
+            onStateChanged={handleStateChanged}
+          />
         </div>
-    </>;
-
-    return <div className={s.walkthrough}>
-        <div className={s.split}>
-            <div className={s.content}>
-                {/* <div className={s.menuTopBar}>
-                    <div className={s.menu} ref={setMenuButtonEl} onClick={() => setMenuVisible(a => !a)}>Menu &gt;</div>
-                    {menuVisible && <Popup targetEl={menuButtonEl} placement={PopupPos.BottomLeft} className={s.mainMenu} closeBackdrop onClose={() => setMenuVisible(false)}>
-                        {menu}
-                    </Popup>}
-                    <div onClick={() => stepModel()}>Step</div>
-                </div> */}
-                {/* <Commentary /> */}
-                <TableOfContents texts={texts} selectedIndex={currentEinsumState} onEntryClick={handleEntryClick} />
-            <EinsumDemoApp einsumProgramState={state} onStateChanged={handleStateChanged} />
-            </div>
-
-        </div>
-    </div>;
-};
-
+      </div>
+    </aside>
+  );
+}
