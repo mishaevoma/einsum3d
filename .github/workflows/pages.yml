@@ -30,7 +30,7 @@ jobs:
       - run: corepack prepare yarn@4.18.0 --activate
       - run: yarn install --immutable
       - run: yarn build
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: out
       - id: deployment
