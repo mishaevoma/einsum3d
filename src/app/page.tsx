@@ -20,7 +20,7 @@ export const Header: React.FC<{
         <div className="flex items-center">{children}
 
         <div className="p-2">
-            <a href="https://github.com/manifoldhiker/einsum3d" rel="noopener noreferrer" target="_blank">
+            <a href="https://github.com/mishaevoma/einsum3d" rel="noopener noreferrer" target="_blank">
                 <FontAwesomeIcon icon={faGithub} />
             </a>
         </div>
