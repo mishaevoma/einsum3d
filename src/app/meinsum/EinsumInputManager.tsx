@@ -1,68 +1,98 @@
 'use client';
 
+import { useId } from 'react';
 import type { EinsumOperand } from '@/src/einsum';
+import { Icon } from '../Icon';
 import OperandItem from './OperandItem';
+import s from '@/src/llm/Sidebar.module.scss';
 
 interface EinsumInputManagerProps {
-  operands: EinsumOperand[];
-  equation: string;
-  error: string | null;
-  onEquationChange: (equation: string) => void;
-  onAddOperand: () => void;
-  onRemoveOperand: (index: number) => void;
-  onUpdateOperand: (index: number, operand: EinsumOperand) => void;
+    operands: EinsumOperand[];
+    equation: string;
+    error: string | null;
+    onEquationChange: (equation: string) => void;
+    onAddOperand: () => void;
+    onRemoveOperand: (index: number) => void;
+    onUpdateOperand: (index: number, operand: EinsumOperand) => void;
 }
 
 export default function EinsumInputManager({
-  operands,
-  equation,
-  error,
-  onEquationChange,
-  onAddOperand,
-  onRemoveOperand,
-  onUpdateOperand,
+    operands,
+    equation,
+    error,
+    onEquationChange,
+    onAddOperand,
+    onRemoveOperand,
+    onUpdateOperand,
 }: EinsumInputManagerProps) {
-  return (
-    <section aria-label="Einsum inputs">
-      <div className="mb-2">
-        {operands.map((operand, index) => (
-          <OperandItem
-            key={index}
-            operand={operand}
-            onUpdate={(updatedOperand) =>
-              onUpdateOperand(index, updatedOperand)
-            }
-            onRemove={() => onRemoveOperand(index)}
-          />
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={onAddOperand}
-        className="mb-3 rounded border border-blue-600 bg-blue-300 px-2 py-1 hover:bg-blue-400"
-      >
-        Add operand
-      </button>
-
-      <label className="block">
-        <span className="mr-2">Equation:</span>
-        <input
-          aria-label="Einsum equation"
-          aria-invalid={Boolean(error)}
-          type="text"
-          value={equation}
-          onChange={(event) => onEquationChange(event.target.value)}
-          className={`rounded border px-1 py-0.5 ${
-            error ? 'border-red-600 text-red-700' : 'border-slate-400'
-          }`}
-        />
-      </label>
-      {error && (
-        <p className="mt-1 text-sm text-red-700" role="alert">
-          {error}
-        </p>
-      )}
-    </section>
-  );
+    const id = useId();
+    return (
+        <section aria-label="Einsum inputs" className={s.inputs}>
+            <div className={s.sectionHeading}>
+                <label htmlFor={`${id}-equation`}>Einsum equation</label>
+                <span>EDIT & EXPLORE</span>
+            </div>
+            <div className={s.equationField} data-invalid={Boolean(error)}>
+                <span aria-hidden="true">Σ</span>
+                <input
+                    id={`${id}-equation`}
+                    aria-label="Einsum equation"
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={`${id}-hint`}
+                    type="text"
+                    spellCheck={false}
+                    autoComplete="off"
+                    value={equation}
+                    onChange={(event) => onEquationChange(event.target.value)}
+                />
+                {!error && <Icon name="check" size={16} />}
+            </div>
+            <p
+                id={`${id}-hint`}
+                className={error ? s.error : s.hint}
+                role={error ? 'alert' : undefined}
+            >
+                {error ?? (
+                    <>
+                        Inputs on the left. Output after <code>→</code>.
+                    </>
+                )}
+            </p>
+            <div className={s.sectionHeading}>
+                <span>Input tensors</span>
+                <span>{operands.length} OPERANDS</span>
+            </div>
+            <div className={s.operandHeaders}>
+                <span>Name</span>
+                <span>Shape</span>
+            </div>
+            <div className={s.operands}>
+                {operands.map((operand, index) => (
+                    <OperandItem
+                        key={index}
+                        operand={operand}
+                        index={index}
+                        dimensions={
+                            equation
+                                .replace(/\s/g, '')
+                                .split('->')[0]
+                                .split(',')[index] ?? ''
+                        }
+                        onUpdate={(updatedOperand) =>
+                            onUpdateOperand(index, updatedOperand)
+                        }
+                        onRemove={() => onRemoveOperand(index)}
+                    />
+                ))}
+            </div>
+            <button
+                type="button"
+                onClick={onAddOperand}
+                className={s.addOperand}
+            >
+                <Icon name="plus" size={14} />
+                Add operand
+            </button>
+        </section>
+    );
 }

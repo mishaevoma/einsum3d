@@ -1,25 +1,375 @@
-.walkthrough {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-  overflow: hidden;
+.sidebar {
+    height: 100%;
+    overflow: auto;
+    padding: 26px 24px 18px;
+    background: #fffefa;
+    scrollbar-width: thin;
+    scrollbar-color: #d1dbd0 transparent;
 }
-
-.split {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  align-items: stretch;
-  overflow: hidden;
+.sidebarTitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    color: #829085;
+    margin-bottom: 20px;
+    font-weight: 650;
 }
-
-.content {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 0.5rem;
-  overflow: auto;
+.live {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 0;
+    font-weight: 500;
+    color: #518363;
+}
+.live i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #67a479;
+}
+.sectionHeading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #374c40;
+}
+.sectionHeading > span:last-child:not(:first-child) {
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    color: #849085;
+    font-weight: 500;
+}
+.examples {
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+}
+.examples details {
+    position: relative;
+}
+.examples summary {
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    min-height: 45px;
+    background: #edf3eb;
+    border: 1px solid #d9e4d6;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #31593d;
+    font-size: 12px;
+    font-weight: 600;
+}
+.examples summary::-webkit-details-marker {
+    display: none;
+}
+.examples summary > span {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.examples summary svg {
+    flex-shrink: 0;
+}
+.examples details[open] > summary > svg {
+    transform: rotate(180deg);
+}
+.exampleList {
+    margin-top: 6px;
+    padding: 5px;
+    border: 1px solid #dce5d8;
+    border-radius: 8px;
+    background: white;
+}
+.exampleList button {
+    position: relative;
+    width: 100%;
+    text-align: left;
+    border-radius: 5px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 11px;
+}
+.exampleList button code {
+    font-family: var(--mono);
+    color: #869386;
+    font-size: 10px;
+}
+.exampleList button svg {
+    position: absolute;
+    right: 8px;
+    top: 12px;
+}
+.exampleList button:hover,
+.exampleList button[aria-current] {
+    background: #edf3eb;
+    color: #276342;
+}
+.equationField {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #cbd9c8;
+    background: white;
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 2px 3px #253e3010;
+}
+.equationField:focus-within {
+    border-color: #388966;
+    box-shadow: 0 0 0 3px #38896614;
+}
+.equationField > span {
+    color: #a2ada0;
+    font-size: 18px;
+}
+.equationField input {
+    width: 100%;
+    min-width: 0;
+    border: none;
+    background: none;
+    outline: none;
+    color: #284735;
+    font: 15px var(--mono);
+    letter-spacing: -0.5px;
+}
+.equationField > svg {
+    color: #4b9764;
+    flex-shrink: 0;
+}
+.equationField[data-invalid='true'] {
+    border-color: #c67865;
+}
+.hint {
+    font-size: 10px;
+    line-height: 1.7;
+    color: #819081;
+    margin: 8px 0 18px;
+}
+.hint code {
+    font-family: var(--mono);
+}
+.error {
+    color: #a54735;
+    font-size: 11px;
+    line-height: 1.6;
+    padding: 8px 0;
+    margin: 0 0 15px;
+}
+.operandHeaders {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    padding: 0 26px 7px 24px;
+    font-size: 10px;
+    color: #8c9689;
+}
+.operands {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.operand {
+    border: 1px solid #e2e7de;
+    border-radius: 8px;
+    background: #fff;
+    padding: 9px 10px 7px;
+}
+.operandFields {
+    display: grid;
+    grid-template-columns: 6px minmax(0, 1fr) minmax(0, 1.3fr) 18px;
+    gap: 8px;
+    align-items: center;
+}
+.operandFields input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    border-radius: 3px;
+    outline-offset: 2px;
+    color: #435247;
+    background: #f7f9f5;
+    padding: 5px;
+    font: 11px var(--mono);
+}
+.operandFields input[aria-invalid='true'] {
+    background: #fff0eb;
+    color: #a54735;
+}
+.operandFields input:focus {
+    outline: 1px solid #388966;
+}
+.operandFields button {
+    color: #849282;
+    display: grid;
+    place-items: center;
+    min-height: 28px;
+}
+.operandFields button:hover {
+    color: #a54735;
+}
+.operandDot,
+.outputDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7780c9;
+    flex-shrink: 0;
+}
+.operandDot[data-color='1'] {
+    background: #5ba992;
+}
+.operandDot[data-color='2'] {
+    background: #bf85aa;
+}
+.operandDimensions {
+    display: flex;
+    gap: 9px;
+    margin: 7px 0 0 14px;
+    font: 9px var(--mono);
+    color: #9aa293;
+}
+.operandDimensions b {
+    color: #71816f;
+    font-weight: 500;
+}
+.addOperand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #5d7960;
+    margin: 10px 0 17px;
+    padding: 3px 0;
+}
+.addOperand:hover {
+    color: #197349;
+}
+.output {
+    border: 1px solid #e8dcc0;
+    background: #fbf7ea;
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.output > div {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 12px;
+    font-weight: 550;
+    color: #806439;
+}
+.outputDot {
+    background: #ccaa5d;
+}
+.output code {
+    margin-left: auto;
+    font: 14px var(--mono);
+}
+.output p {
+    font-size: 10px;
+    color: #a49167;
+    margin: 7px 0 0 15px;
+    line-height: 1.5;
+}
+.codeBox {
+    overflow: hidden;
+    border-radius: 8px;
+    background: #20372e;
+    color: #d4e0cf;
+}
+.codeToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-bottom: 1px solid #ffffff12;
+}
+.codeToolbar > button {
+    color: #91aa97;
+    padding: 5px;
+    display: grid;
+    place-items: center;
+}
+.codeTabs {
+    display: flex;
+    gap: 5px;
+}
+.codeTabs button {
+    padding: 5px 9px;
+    border-radius: 4px;
+    color: #91aa97;
+    font-size: 10px;
+}
+.codeTabs button[aria-pressed='true'] {
+    background: #ffffff12;
+    color: #e0ebd7;
+}
+.codeBox pre {
+    margin: 0;
+    padding: 17px 14px 20px;
+    overflow: auto;
+    max-height: 240px;
+    scrollbar-width: thin;
+    scrollbar-color: #617764 transparent;
+    font: 10px/1.9 var(--mono);
+    tab-size: 4;
+}
+.sidebarFooter {
+    margin-top: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    color: #8a9484;
+}
+.sidebarFooter button {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    color: #647c62;
+    font-size: 10px;
+}
+@media (max-width: 700px) {
+    .sidebar {
+        padding: 22px;
+        height: auto;
+    }
+    .sidebarTitle {
+        margin-bottom: 22px;
+    }
+    .exampleList {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .codeBox pre {
+        font-size: 11px;
+    }
+    .operandFields {
+        grid-template-columns: 6px minmax(0, 1fr) minmax(0, 1.3fr) 28px;
+    }
+    .operandFields input,
+    .equationField input {
+        font-size: 16px;
+    }
+    .operandFields button {
+        min-height: 40px;
+    }
+    .addOperand,
+    .sidebarFooter button {
+        min-height: 40px;
+    }
 }

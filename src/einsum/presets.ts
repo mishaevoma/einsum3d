@@ -24,8 +24,8 @@ export function createPresets(): EinsumPreset[] {
       'Multihead query-key attention scores',
       'Bnqh,Bnkh->Bnqk',
       [
-        ['Q', [8, 4, 4, 8]],
-        ['K', [8, 4, 12, 8]],
+        ['Q', [2, 4, 4, 8]],
+        ['K', [2, 4, 12, 8]],
       ],
     ),
     preset('Quadratic form', 'a,ab,b->', [
@@ -47,8 +47,8 @@ export function createPresets(): EinsumPreset[] {
     ]),
     preset('Return a diagonal', 'ii->i', [['A', [16, 16]]]),
     preset('Batched matrix multiplication', 'Bik,Bkj->Bij', [
-      ['A', [32, 16, 8]],
-      ['B', [32, 8, 12]],
+      ['A', [4, 16, 8]],
+      ['B', [4, 8, 12]],
     ]),
     preset('Custom', 'abcdefg,h->he', [
       ['A', [2, 2, 2, 2, 2, 3, 3]],

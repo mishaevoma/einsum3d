@@ -1,36 +1,56 @@
-interface TableOfContentsProps {
-  texts: string[];
-  selectedIndex?: number;
-  onEntryClick: (index: number) => void;
-}
+import { useRef } from 'react';
+import type { EinsumPreset } from '@/src/einsum';
+import { Icon } from '@/src/app/Icon';
+import s from './Sidebar.module.scss';
 
 export default function TableOfContents({
-  texts,
-  selectedIndex,
-  onEntryClick,
-}: TableOfContentsProps) {
-  return (
-    <nav aria-label="Einsum examples">
-      <ul className="m-0 list-none p-0">
-        {texts.map((text, index) => {
-          const selected = selectedIndex === index;
-          return (
-            <li key={text}>
-              <button
-                type="button"
-                aria-current={selected ? 'true' : undefined}
-                className={`w-full border border-slate-200 px-4 py-2 text-left ${
-                  selected ? 'bg-sky-200 font-bold' : 'hover:bg-slate-100'
-                }`}
-                onClick={() => onEntryClick(index)}
-              >
-                {text}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
+    presets,
+    selectedIndex,
+    onEntryClick,
+}: {
+    presets: EinsumPreset[];
+    selectedIndex: number;
+    onEntryClick: (index: number) => void;
+}) {
+    const details = useRef<HTMLDetailsElement>(null);
+    return (
+        <nav aria-label="Einsum examples" className={s.examples}>
+            <div className={s.sectionHeading}>
+                <span>Start with an example</span>
+                <span>01—08</span>
+            </div>
+            <details ref={details}>
+                <summary aria-label="Choose an example">
+                    <span>
+                        <Icon name="cube" />
+                        {presets[selectedIndex].name}
+                    </span>
+                    <Icon name="chevron" size={15} />
+                </summary>
+                <div className={s.exampleList}>
+                    {presets.map((preset, index) => (
+                        <button
+                            key={preset.name}
+                            type="button"
+                            aria-label={preset.name}
+                            aria-current={
+                                selectedIndex === index ? 'true' : undefined
+                            }
+                            onClick={() => {
+                                onEntryClick(index);
+                                if (details.current)
+                                    details.current.open = false;
+                            }}
+                        >
+                            <span>{preset.name}</span>
+                            <code>{preset.state.equation}</code>
+                            {selectedIndex === index && (
+                                <Icon name="check" size={14} />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </details>
+        </nav>
+    );
 }
-

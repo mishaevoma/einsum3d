@@ -8,10 +8,15 @@ import type {
 } from "../layout/types";
 
 const BLOCK_COLORS = {
-    operand: new Vec4(0.3, 0.3, 1.0, 1),
-    result: new Vec4(0.95, 0.65, 0.15, 1),
+    operand: new Vec4(0.55, 0.57, 0.94, 1),
+    result: new Vec4(0.96, 0.75, 0.36, 1),
 };
 
+
+const OPERAND_COLORS = [BLOCK_COLORS.operand, new Vec4(0.3, 0.78, 0.63, 1), new Vec4(0.83, 0.53, 0.7, 1)];
+function blockColor(cube: IBlkDef): Vec4 {
+    return cube.kind === 'result' ? BLOCK_COLORS.result : OPERAND_COLORS[(cube.tensorIndex ?? 0) % OPERAND_COLORS.length];
+}
 
 export type IBlockRender = ReturnType<typeof initBlockRender>;
 
@@ -165,7 +170,7 @@ export function initBlockRender(ctx: IGLContext | null) {
             float dist = distance(u_camPos, v_modelPos);
             float t = clamp((dist - minDist) / (maxDist - minDist), 0.0, 1.0);
 
-            vec3 baseColor = mix(u_baseColor.rgb, vec3(0.5, 0.5, 0.5), 0.5);
+            vec3 baseColor = mix(u_baseColor.rgb, vec3(0.5, 0.5, 0.5), 0.15);
             if (cellDark) {
                 baseColor *= mix(0.9, 1.0, t);
             }
@@ -233,7 +238,7 @@ export function initBlockRender(ctx: IGLContext | null) {
                 baseColor = mix(baseColor, color, edgeWeight);
             }
 
-            vec3 color = mix(baseColor * 0.7, u_baseColor.rgb, u_highlight);
+            vec3 color = mix(baseColor * 0.9, u_baseColor.rgb, u_highlight);
 
             o_color = vec4(color, 1) * u_baseColor.a;
         }`;
@@ -353,7 +358,7 @@ export function renderBlocksSimple(blockRender: IBlockRender, cubes: IBlkDef[]) 
     for (const cube of cubes) {
         gl.uniform3f(locs.u_size, cube.dx, cube.dy, cube.dz);
         gl.uniform3f(locs.u_offset, cube.x, cube.y, cube.z);
-        const baseColor = BLOCK_COLORS[cube.kind].mul(cube.highlight);
+        const baseColor = blockColor(cube).mul(cube.highlight);
         gl.uniform4f(locs.u_baseColor, baseColor.x, baseColor.y, baseColor.z, baseColor.w);
         gl.drawArrays(geom.type, 0, geom.numVerts);
     }
@@ -415,7 +420,7 @@ export function renderAllBlocks(blockRender: IBlockRender, layout: IModelLayout,
 
             blockBuf.set(cube.localMtx ?? new Mat4f(), baseOff + 12);
 
-            const color = BLOCK_COLORS[cube.kind];
+            const color = blockColor(cube);
             const baseColor = new Vec4(color.x, color.y, color.z, cube.opacity);
             baseColor.writeToBuf(blockBuf, baseOff + 28);
 
@@ -522,7 +527,7 @@ export function renderAllBlocksInstanced(blockRender: IBlockRender, layout: IMod
 
                 buf.set(cube.localMtx ?? new Mat4f(), baseOff + 12);
 
-                const color = BLOCK_COLORS[cube.kind];
+                const color = blockColor(cube);
                 const baseColor = new Vec4(color.x, color.y, color.z, cube.opacity);
                 baseColor.writeToBuf(buf, baseOff + 28);
 

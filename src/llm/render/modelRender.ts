@@ -134,7 +134,7 @@ export function renderModel(state: ProgramState) {
     /// ------ The render pass ------ ///
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, size.x, size.y);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -161,10 +161,11 @@ export function renderModel(state: ProgramState) {
 
     {
         const blurBlocks = layout.cubes.filter(a => a.highlight > 0)
-        setupBlurTarget(args.blurRender);
-        renderBlocksSimple(blockRender, blurBlocks);
-
-        renderBlur(args.blurRender, null);
+        if (blurBlocks.length > 0) {
+            setupBlurTarget(args.blurRender);
+            renderBlocksSimple(blockRender, blurBlocks);
+            renderBlur(args.blurRender, null);
+        }
     }
     gl.enable(gl.DEPTH_TEST);
 

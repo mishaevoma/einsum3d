@@ -14,6 +14,8 @@ export interface TensorBlock {
   idx: number;
   kind: BlockKind;
   name: string;
+  tensorIndex?: number;
+  label?: boolean;
   x: number;
   y: number;
   z: number;
@@ -35,4 +37,5 @@ export interface EinsumLayout {
   cell: number;
   margin: number;
   height: number;
+  notice?: string;
 }

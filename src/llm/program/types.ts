@@ -1,4 +1,4 @@
-import type { EinsumPreset } from '@/src/einsum';
+import type { EinsumPreset, EinsumState } from '@/src/einsum';
 import type { Subscriptions } from '@/src/utils/hooks';
 import type { ILayout } from '@/src/utils/layout';
 import type { Vec3 } from '@/src/utils/vector';
@@ -17,10 +17,12 @@ export interface HoverTarget {
 
 export interface DisplayState {
   hoverTarget: HoverTarget | null;
+  focusDimension: string | null;
 }
 
 export interface ProgramState {
   presets: EinsumPreset[];
+  previewStates: EinsumState[];
   currentPresetIndex: number;
   render: IRenderState | null;
   camera: ICamera;

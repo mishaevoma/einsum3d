@@ -1,56 +1,65 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import type { EinsumState } from '@/src/einsum';
 import { EinsumDemoApp } from '@/src/app/meinsum/EinsumDemoApp';
+import { Icon } from '@/src/app/Icon';
 import {
-  selectPreset,
-  updateCurrentEinsumState,
+    resetCurrentPreset,
+    selectPreset,
+    updateCurrentEinsumState,
 } from './program/EinsumProgram';
 import { useProgramState } from './Sidebar';
 import TableOfContents from './MeinsumMenu';
-import styles from './Sidebar.module.scss';
+import s from './Sidebar.module.scss';
 
 function useIsHydrated(): boolean {
-  return useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
-  );
+    return useSyncExternalStore(
+        () => () => undefined,
+        () => true,
+        () => false,
+    );
 }
 
 export function MeinsumSidebar() {
-  const program = useProgramState();
-  const [, rerender] = useState(0);
-  const ready = useIsHydrated();
-  const preset = program.presets[program.currentPresetIndex];
-  const flush = () => rerender((value) => value + 1);
+    const program = useProgramState();
+    const ready = useIsHydrated();
+    const preset = program.presets[program.currentPresetIndex];
+    const handleStateChanged = (state: EinsumState) =>
+        updateCurrentEinsumState(program, state);
 
-  const handleStateChanged = (state: EinsumState) => {
-    updateCurrentEinsumState(program, state);
-    flush();
-  };
-
-  const handleEntryClick = (index: number) => {
-    selectPreset(program, index);
-    flush();
-  };
-
-  return (
-    <aside className={styles.walkthrough} data-editor-ready={ready}>
-      <div className={styles.split}>
-        <div className={styles.content}>
-          <TableOfContents
-            texts={program.presets.map((item) => item.name)}
-            selectedIndex={program.currentPresetIndex}
-            onEntryClick={handleEntryClick}
-          />
-          <EinsumDemoApp
-            state={preset.state}
-            onStateChanged={handleStateChanged}
-          />
-        </div>
-      </div>
-    </aside>
-  );
+    return (
+        <aside
+            className={s.sidebar}
+            data-editor-ready={ready}
+            aria-label="Equation editor"
+        >
+            <div className={s.sidebarTitle}>
+                <span>YOUR WORKSPACE</span>
+                <span className={s.live}>
+                    <i />
+                    Live
+                </span>
+            </div>
+            <TableOfContents
+                presets={program.presets}
+                selectedIndex={program.currentPresetIndex}
+                onEntryClick={(index) => selectPreset(program, index)}
+            />
+            <EinsumDemoApp
+                state={preset.state}
+                onStateChanged={handleStateChanged}
+            />
+            <div className={s.sidebarFooter}>
+                <span>Curiosity encouraged.</span>
+                <button
+                    type="button"
+                    onClick={() => resetCurrentPreset(program)}
+                >
+                    <Icon name="reset" size={13} />
+                    Reset example
+                </button>
+            </div>
+        </aside>
+    );
 }

@@ -46,7 +46,7 @@ function cellAtPoint(block: TensorBlock, point: Vec3): Vec3 {
 
 export function runMouseHitTesting(state: ProgramState): void {
   const render = state.render;
-  if (!render || render.size.x <= 0 || render.size.y <= 0) {
+  if (!render || render.size.x <= 0 || render.size.y <= 0 || state.mouse.mousePos.x < 0 || state.mouse.mousePos.y < 0) {
     return;
   }
 

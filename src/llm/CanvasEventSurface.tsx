@@ -1,132 +1,172 @@
-import React, { useState, useCallback } from "react";
-import { useProgramState } from "./Sidebar";
-import { clamp } from "@/src/utils/data";
-import { useGlobalDrag, useTouchEvents } from "@/src/utils/pointer";
-import { Vec3 } from "@/src/utils/vector";
+import {
+    useEffect,
+    useRef,
+    useState,
+    type PointerEvent,
+    type KeyboardEvent,
+} from 'react';
+import { useProgramState } from './Sidebar';
+import { clamp } from '@/src/utils/data';
+import {
+    cancelCameraTransition,
+    zoomCamera,
+    orbitCamera,
+    panCamera,
+    movePointer,
+} from './program/interaction';
+import { fitCameraToLayout } from './program/EinsumProgram';
 import s from './LayerView.module.scss';
-import type { ProgramState } from "./program/types";
 
-export const CanvasEventSurface: React.FC<{
-    children?: React.ReactNode;
-}> = ({ children }) => {
-    const [eventSurfaceEl, setEventSurfaceEl] = useState<HTMLDivElement | null>(null);
-    const progState = useProgramState();
+type Point = { x: number; y: number };
 
-    const updateRenderState = useCallback((fn: (ps: ProgramState) => void) => {
-        fn(progState);
-        progState.markDirty();
-    }, [progState]);
+export function CanvasEventSurface() {
+    const program = useProgramState(false);
+    const [surface, setSurface] = useState<HTMLDivElement | null>(null);
+    const pointers = useRef(new Map<number, Point>());
 
-    function pan(initial: { camAngle: Vec3, camTarget: Vec3 }, dx: number, dy: number) {
-        const camAngle = initial.camAngle;
-        const target = initial.camTarget.clone();
-        target.z = target.z + dy * 0.1 * camAngle.z; // @TODO: clamp to the bounding box of the model
-        const sideMul = Math.sin(camAngle.x * Math.PI / 180) > 0 ? 1 : -1;
-        target.x = target.x + sideMul * dx * 0.1 * camAngle.z;
+    useEffect(() => {
+        if (!surface) return;
+        const wheel = (event: WheelEvent) => {
+            event.preventDefault();
+            const delta =
+                event.deltaY *
+                (event.deltaMode === 1
+                    ? 16
+                    : event.deltaMode === 2
+                      ? surface.clientHeight
+                      : 1);
+            zoomCamera(program, Math.exp(clamp(delta, -400, 400) * 0.0018));
+        };
+        surface.addEventListener('wheel', wheel, { passive: false });
+        return () => surface.removeEventListener('wheel', wheel);
+    }, [surface, program]);
 
-        updateRenderState(ps => {
-            ps.camera.center = target;
-        });
-    }
-
-    function rotate(initial: { camAngle: Vec3, camTarget: Vec3 }, dx: number, dy: number) {
-        const camAngle = initial.camAngle.clone();
-        const degPerPixel = 0.5;
-        camAngle.x = camAngle.x - dx * degPerPixel;
-        camAngle.y = clamp(camAngle.y + dy * degPerPixel, -87, 87);
-        updateRenderState(ps => {
-            ps.camera.angle = camAngle;
-        });
-    }
-
-    function zoom(initial: { camAngle: Vec3, camTarget: Vec3 }, dy: number) {
-        const camAngle = initial.camAngle.clone();
-        camAngle.z = clamp(camAngle.z / dy, 0.1, 100000);
-        updateRenderState(ps => {
-            ps.camera.angle = camAngle;
-        });
-    }
-
-    const [dragStart, setDragStart] = useGlobalDrag<{ camAngle: Vec3, camTarget: Vec3 }>(function handleMove(ev, ds) {
-        const dx = ev.clientX - ds.clientX;
-        const dy = ev.clientY - ds.clientY;
-
-        if (!ds.shiftKey && !(ds.button === 1 || ds.button === 2)) {
-            pan(ds.data, dx, dy);
-        } else {
-            rotate(ds.data, dx, dy);
+    function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        movePointer(
+            program,
+            event.clientX - rect.left,
+            event.clientY - rect.top,
+        );
+        const previous = pointers.current.get(event.pointerId);
+        if (previous) {
+            const current = { x: event.clientX, y: event.clientY };
+            const other = [...pointers.current.entries()].find(
+                ([id]) => id !== event.pointerId,
+            )?.[1];
+            if (other) {
+                const oldDistance = Math.hypot(
+                    previous.x - other.x,
+                    previous.y - other.y,
+                );
+                const newDistance = Math.hypot(
+                    current.x - other.x,
+                    current.y - other.y,
+                );
+                if (oldDistance > 0 && newDistance > 0)
+                    zoomCamera(program, oldDistance / newDistance);
+                panCamera(
+                    program,
+                    (current.x - previous.x) / 2,
+                    (current.y - previous.y) / 2,
+                    surface?.clientHeight ?? 1,
+                );
+            } else if (
+                event.shiftKey ||
+                event.buttons === 2 ||
+                event.buttons === 4
+            ) {
+                panCamera(
+                    program,
+                    current.x - previous.x,
+                    current.y - previous.y,
+                    surface?.clientHeight ?? 1,
+                );
+            } else {
+                orbitCamera(
+                    program,
+                    current.x - previous.x,
+                    current.y - previous.y,
+                );
+            }
+            pointers.current.set(event.pointerId, current);
         }
+        program.markDirty();
+    }
 
-        ev.preventDefault();
-    });
-
-    useTouchEvents(eventSurfaceEl, { camAngle: progState.camera.angle, camTarget: progState.camera.center }, { alwaysSendDragEvent: true },
-        function handle1PointDrag(ev, ds) {
-            const dsTouch0 = ds.touches[0];
-            const evTouch0 = ev.touches[0];
-            const dx = evTouch0.clientX - dsTouch0.clientX;
-            const dy = evTouch0.clientY - dsTouch0.clientY;
-            pan(ds.data, dx, dy);
-            ev.preventDefault();
-    },  function handle2PointDrag(ev, ds) {
-            const dsTouch0 = ds.touches[0];
-            const dsTouch1 = ds.touches[1];
-            const evTouch0 = ev.touches[0];
-            const evTouch1 = ev.touches[1];
-            const dsMidX = (dsTouch0.clientX + dsTouch1.clientX) / 2;
-            const dsMidY = (dsTouch0.clientY + dsTouch1.clientY) / 2;
-            const evMidX = (evTouch0.clientX + evTouch1.clientX) / 2;
-            const evMidY = (evTouch0.clientY + evTouch1.clientY) / 2;
-            const dx = evMidX - dsMidX;
-            const dy = evMidY - dsMidY;
-            const dsDist = Math.sqrt((dsTouch0.clientX - dsTouch1.clientX) ** 2 + (dsTouch0.clientY - dsTouch1.clientY) ** 2);
-            const evDist = Math.sqrt((evTouch0.clientX - evTouch1.clientX) ** 2 + (evTouch0.clientY - evTouch1.clientY) ** 2);
-            rotate(ds.data, dx, dy);
-            // pan(ds.data, dx, dy);
-            zoom(ds.data, evDist / dsDist);
-            ev.preventDefault();
-    });
-
-    function handleMouseDown(ev: React.MouseEvent) {
-        if (progState) {
-            setDragStart(ev, { camAngle: progState.camera.angle, camTarget: progState.camera.center });
+    function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        const key = event.key.toLowerCase();
+        if (
+            ![
+                'arrowleft',
+                'arrowright',
+                'arrowup',
+                'arrowdown',
+                '+',
+                '=',
+                '-',
+                'f',
+            ].includes(key)
+        )
+            return;
+        event.preventDefault();
+        cancelCameraTransition(program);
+        if (key === 'f') fitCameraToLayout(program);
+        else if (key === '+' || key === '=') zoomCamera(program, 1 / 1.15);
+        else if (key === '-') zoomCamera(program, 1.15);
+        else if (event.shiftKey)
+            panCamera(
+                program,
+                key === 'arrowleft' ? -20 : key === 'arrowright' ? 20 : 0,
+                key === 'arrowup' ? -20 : key === 'arrowdown' ? 20 : 0,
+                surface?.clientHeight ?? 1,
+            );
+        else {
+            orbitCamera(
+                program,
+                key === 'arrowleft' ? -20 : key === 'arrowright' ? 20 : 0,
+                key === 'arrowup' ? -20 : key === 'arrowdown' ? 20 : 0,
+            );
         }
+        program.markDirty();
     }
 
-    function handleMouseMove(ev: React.MouseEvent) {
-        if (progState.render) {
-            const canvasBcr = progState.render.canvasEl.getBoundingClientRect();
-            const mousePos = new Vec3(ev.clientX - canvasBcr.left, ev.clientY - canvasBcr.top, 0);
-            updateRenderState(ps => {
-                ps.mouse.mousePos = mousePos;
-            });
-        }
-    }
-
-    function handleWheel(ev: React.WheelEvent) {
-        if (progState) {
-            const camAngle = progState.camera.angle;
-            const zoom = clamp(camAngle.z * Math.pow(1.0013, ev.deltaY), 0.01, 100000);
-            updateRenderState(rs => {
-                rs.camera.angle = new Vec3(camAngle.x, camAngle.y, zoom);
-            });
-        }
-        ev.stopPropagation();
-    }
-
-    if (!progState.render) {
-        return null;
-    }
-
-    return <div
-        ref={setEventSurfaceEl}
-        className={s.canvasEventSurface}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onWheel={handleWheel}
-        onContextMenu={ev => ev.preventDefault()}
-        style={{ cursor: dragStart ? 'grabbing' : progState.display.hoverTarget ? 'crosshair' : 'grab' }}
-    >
-        {children}
-    </div>;
+    return (
+        <div
+            ref={setSurface}
+            className={s.canvasEventSurface}
+            tabIndex={0}
+            role="region"
+            aria-label="3D canvas. Drag or use arrow keys to orbit. Shift to pan. Plus and minus to zoom. F to fit."
+            onPointerDown={(event) => {
+                cancelCameraTransition(program);
+                event.currentTarget.focus({ preventScroll: true });
+                event.currentTarget.setPointerCapture(event.pointerId);
+                pointers.current.set(event.pointerId, {
+                    x: event.clientX,
+                    y: event.clientY,
+                });
+            }}
+            onPointerMove={handlePointerMove}
+            onPointerUp={(event) => {
+                pointers.current.delete(event.pointerId);
+            }}
+            onPointerCancel={(event) => {
+                pointers.current.delete(event.pointerId);
+            }}
+            onLostPointerCapture={(event) => {
+                pointers.current.delete(event.pointerId);
+            }}
+            onPointerLeave={() => {
+                movePointer(program, -1, -1);
+            }}
+            onDoubleClick={() => {
+                fitCameraToLayout(program);
+                program.markDirty();
+            }}
+            onKeyDown={handleKeyDown}
+            onContextMenu={(event) => event.preventDefault()}
+        />
+    );
 }

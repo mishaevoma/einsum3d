@@ -20,9 +20,9 @@ export function drawBlockInfo(state: ProgramState) {
         scale = Math.min(scale, 1.45);
         // have a max scale
 
-        const textColor = new Vec4(1, 1, 1, 1).mul(blk.opacity);
+        const textColor = new Vec4(0.2, 0.29, 0.24, 1).mul(blk.opacity);
 
-        if (blk.opacity === 0 || !blk.name) {
+        if (blk.opacity === 0 || !blk.name || blk.label === false) {
             continue;
         }
 

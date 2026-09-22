@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
-      <Header title="einsum visualization" />
+      <Header />
       <LayerView />
       <div id="portal-container" />
     </>

@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+:root {
+    --ink: #243c35;
+    --muted: #748177;
+    --line: #e0e6df;
+    --accent: #247557;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+input, button, select { font: inherit; }
+button, a, input, summary, [tabindex] { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid #268468; outline-offset: 4px; }
+::selection { background: #d5ead7; color: #183c2c; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
 button {
     /* clear all the cruft from the default button styles */
     border: none;

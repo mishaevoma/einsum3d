@@ -7,9 +7,9 @@ import type { ProgramState } from './program/types';
 export const ProgramStateContext = createContext<ProgramState | null>(null);
 const emptySubscriptions = new Subscriptions();
 
-export function useProgramState(): ProgramState {
+export function useProgramState(subscribe = true): ProgramState {
   const context = useContext(ProgramStateContext);
-  useSubscriptions(context?.htmlSubs ?? emptySubscriptions);
+  useSubscriptions(subscribe ? context?.htmlSubs ?? emptySubscriptions : emptySubscriptions);
   if (!context) {
     throw new Error(
       'useProgramState must be used inside ProgramStateContext.Provider.',
